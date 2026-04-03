@@ -5,7 +5,7 @@ xboard:
   # 后端提供商类型
   # 可以是任意字符串，只要远程配置 JSON 的 panels 对象中有对应的键名
   # 例如: mihomo, 或自定义的任何名称
-  provider: mihomo
+  provider: mihomo1
   
   # 远程配置源
   remote_config:
