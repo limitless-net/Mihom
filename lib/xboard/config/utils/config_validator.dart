@@ -62,7 +62,7 @@ class ConfigValidator {
 
   /// 验证协议类型
   static bool isValidProtocol(String protocol) {
-    const validProtocols = ['http', 'https', 'socks5', 'ws', 'wss'];
+    const validProtocols = ['http', 'https', 'socks5', 'relay', 'ws', 'wss'];
     return validProtocols.contains(protocol.toLowerCase());
   }
 

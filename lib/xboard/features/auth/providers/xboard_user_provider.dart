@@ -161,6 +161,14 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
   Future<bool> autoAuth() async {
     return await quickAuth();
   }
+
+  /// 仅标记为已初始化（不做认证），用于初始化失败时让路由离开 /loading
+  void markInitialized() {
+    if (!state.isInitialized) {
+      state = state.copyWith(isInitialized: true);
+    }
+  }
+
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {

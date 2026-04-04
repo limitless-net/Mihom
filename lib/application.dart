@@ -86,10 +86,15 @@ class ApplicationState extends ConsumerState<Application> {
         if (!initState.isReady) {
           final deadline = DateTime.now().add(const Duration(seconds: 30));
           while (!ref.read(initializationProvider).isReady &&
+              !ref.read(initializationProvider).isFailed &&
               DateTime.now().isBefore(deadline)) {
             await Future.delayed(const Duration(milliseconds: 500));
           }
-          if (!ref.read(initializationProvider).isReady) return;
+          if (!ref.read(initializationProvider).isReady) {
+            // 初始化失败或超时，仍然标记用户状态为已初始化，让路由跳到登录页（而非永远卡在 /loading）
+            ref.read(xboardUserProvider.notifier).markInitialized();
+            return;
+          }
         }
 
         final userNotifier = ref.read(xboardUserProvider.notifier);
@@ -98,6 +103,8 @@ class ApplicationState extends ConsumerState<Application> {
         if (mounted) setState(() {});
       } catch (e) {
         debugPrint('[Application] 快速认证检查失败: $e');
+        // 认证失败也要标记已初始化，避免卡在 /loading
+        ref.read(xboardUserProvider.notifier).markInitialized();
         if (mounted) setState(() {});
       }
     });

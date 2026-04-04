@@ -8,6 +8,7 @@ import 'package:fl_clash/xboard/config/xboard_config.dart';
 import 'package:fl_clash/xboard/core/core.dart';
 import 'package:fl_clash/xboard/infrastructure/http/user_agent_config.dart';
 import 'package:socks5_proxy/socks_client.dart';
+import 'package:fl_clash/xboard/infrastructure/network/relay_client.dart';
 
 // 初始化文件级日志器
 final _logger = FileLogger('subscription_downloader.dart');
@@ -208,7 +209,47 @@ class SubscriptionDownloader {
       if (cancelToken.isCancelled) {
         throw Exception('任务已取消');
       }
-      
+
+      // === Relay 中继代理 ===
+      if (useProxy && proxyUrl != null && proxyUrl.toLowerCase().startsWith('relay://')) {
+        final userAgent = await UserAgentConfig.get(UserAgentScenario.subscription);
+
+        final relayResponse = await RelayClient.request(
+          relayUrl: proxyUrl,
+          targetUrl: url,
+          method: 'GET',
+          headers: {'User-Agent': userAgent},
+          timeout: _downloadTimeout,
+        );
+
+        if (cancelToken.isCancelled) throw Exception('任务已取消');
+
+        if (!relayResponse.isSuccess) {
+          throw HttpException('HTTP ${relayResponse.statusCode}');
+        }
+
+        final content = relayResponse.bodyString;
+        final disposition = relayResponse.headers['content-disposition'];
+        final userinfo = relayResponse.headers['subscription-userinfo'];
+
+        String? label;
+        if (disposition != null) {
+          final match = RegExp(r'filename="?([^";\ n]+)"?').firstMatch(disposition);
+          if (match != null) label = match.group(1)?.trim();
+        }
+
+        final subscriptionInfo = userinfo != null
+            ? SubscriptionInfo.formHString(userinfo)
+            : null;
+
+        return _DownloadRawResult(
+          content: content,
+          label: label,
+          subscriptionInfo: subscriptionInfo,
+          bytes: relayResponse.body,
+        );
+      }
+
       // 创建 HttpClient
       client = HttpClient();
       client.connectionTimeout = _downloadTimeout;

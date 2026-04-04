@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:fl_clash/xboard/core/core.dart';
 import 'package:fl_clash/xboard/infrastructure/http/user_agent_config.dart';
 import 'package:socks5_proxy/socks_client.dart';
+import 'relay_client.dart';
 
 // 初始化文件级日志器
 final _logger = FileLogger('domain_racing_service.dart');
@@ -199,8 +200,59 @@ class DomainRacingService {
       final testUrl = _buildTestUrl(domain, testPath);
       _logger.info('[域名竞速] 域名 #$index 测试URL: $testUrl [$connectionType]');
 
-      // 根据域名类型选择HttpClient配置
       final withoutProtocol = domain.replaceFirst(RegExp(r'^https?://'), '');
+
+      // === Relay 中继代理：通过 HTTP POST 中继，独立请求路径 ===
+      if (useProxy && proxyUrl != null && proxyUrl.toLowerCase().startsWith('relay://')) {
+        try {
+          final userAgent = _isIpWithPort(withoutProtocol)
+              ? await UserAgentConfig.get(UserAgentScenario.apiEncrypted)
+              : await UserAgentConfig.get(UserAgentScenario.domainRacingTest);
+
+          _logger.info('[域名竞速] 域名 #$index 使用 Relay 中继: $proxyUrl');
+
+          final relayResponse = await RelayClient.request(
+            relayUrl: proxyUrl,
+            targetUrl: testUrl,
+            method: 'GET',
+            headers: {'User-Agent': userAgent, 'Accept': '*/*'},
+            timeout: _responseTimeout,
+          );
+
+          stopwatch.stop();
+
+          if (cancelToken.isCancelled) {
+            return DomainTestResult.failure(
+                domain, '测试被取消', stopwatch.elapsedMilliseconds,
+                useProxy: true, proxyUrl: proxyUrl);
+          }
+
+          if (relayResponse.isSuccess) {
+            _logger.info(
+                '[域名竞速] \u{1F3C6} 域名 #$index ($domain) [Relay: $proxyUrl] 测试成功，响应时间: ${stopwatch.elapsedMilliseconds}ms');
+            return DomainTestResult.success(
+                domain, stopwatch.elapsedMilliseconds,
+                useProxy: true, proxyUrl: proxyUrl);
+          } else {
+            return DomainTestResult.failure(
+                domain, 'HTTP ${relayResponse.statusCode}',
+                stopwatch.elapsedMilliseconds,
+                useProxy: true, proxyUrl: proxyUrl);
+          }
+        } on TimeoutException {
+          stopwatch.stop();
+          return DomainTestResult.failure(
+              domain, '中继连接超时', stopwatch.elapsedMilliseconds,
+              useProxy: true, proxyUrl: proxyUrl);
+        } catch (e) {
+          stopwatch.stop();
+          return DomainTestResult.failure(
+              domain, '中继连接失败: $e', stopwatch.elapsedMilliseconds,
+              useProxy: true, proxyUrl: proxyUrl);
+        }
+      }
+
+      // 根据域名类型选择HttpClient配置（SOCKS5 / 直连）
       final isIpWithPort = _isIpWithPort(withoutProtocol);
       
       HttpClient client;
@@ -216,8 +268,19 @@ class DomainRacingService {
         _logger.info('[域名竞速] 域名 #$index 使用默认HttpClient [$connectionType]');
       }
 
-      // 如果使用代理，配置 SOCKS5 代理
+      // 域名竞速自行管理代理，绕过全局 FlClashHttpOverrides（避免访问未初始化的 appController._ref）
+      client.findProxy = (_) => 'DIRECT';
+
+      // 如果使用代理，配置 SOCKS5 代理（仅支持 socks5:// 协议）
       if (useProxy && proxyUrl != null) {
+        final lowerUrl = proxyUrl.toLowerCase();
+        if (!lowerUrl.startsWith('socks5://')) {
+          // 非 SOCKS5 协议（如 relay://, http://），域名竞速暂不支持
+          _logger.info('[域名竞速] 域名 #$index 跳过不支持的代理协议: $proxyUrl');
+          stopwatch.stop();
+          return DomainTestResult.failure(
+              domain, '不支持的代理协议: ${proxyUrl.split("://").first}://', stopwatch.elapsedMilliseconds, useProxy: useProxy, proxyUrl: proxyUrl);
+        }
         final proxyConfig = _parseProxyConfig(proxyUrl);
         final proxySettings = ProxySettings(
           InternetAddress(proxyConfig['host']!),
