@@ -1,65 +1,47 @@
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/fade_box.dart';
 import 'package:fl_clash/widgets/pop_scope.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 
 import 'chip.dart';
+import 'inherited.dart';
+
+typedef OnKeywordsUpdateCallback = void Function(List<String> keywords);
+
+typedef AppBarSearchStateBuilder =
+    AppBarSearchState? Function(AppBarSearchState? state);
 
 class CommonScaffold extends StatefulWidget {
   final AppBar? appBar;
   final Widget body;
-  final Widget? bottomNavigationBar;
-  final Widget? sideNavigationBar;
   final Color? backgroundColor;
   final String? title;
-  final Widget? leading;
-  final double? leadingWidth;
+  final bool isLoading;
   final List<Widget>? actions;
-  final bool automaticallyImplyLeading;
   final bool? centerTitle;
-  final AppBarEditState? appBarEditState;
-  final FloatingActionButton? floatingActionButton;
+  final Widget? floatingActionButton;
+  final AppBarEditState? editState;
+  final AppBarSearchState? searchState;
+  final OnKeywordsUpdateCallback? onKeywordsUpdate;
+  final bool? resizeToAvoidBottomInset;
 
   const CommonScaffold({
     super.key,
     this.appBar,
     required this.body,
-    this.sideNavigationBar,
     this.backgroundColor,
-    this.bottomNavigationBar,
-    this.leading,
-    this.leadingWidth,
     this.title,
     this.actions,
-    this.automaticallyImplyLeading = true,
     this.centerTitle,
-    this.appBarEditState,
+    this.editState,
+    this.isLoading = false,
+    this.searchState,
     this.floatingActionButton,
+    this.onKeywordsUpdate,
+    this.resizeToAvoidBottomInset,
   });
-
-  CommonScaffold.open({
-    Key? key,
-    required Widget body,
-    required String title,
-    required Function onBack,
-    required List<Widget> actions,
-  }) : this(
-          key: key,
-          body: body,
-          title: title,
-          automaticallyImplyLeading: false,
-          actions: actions,
-          leading: IconButton(
-            icon: const BackButtonIcon(),
-            onPressed: () {
-              onBack();
-            },
-          ),
-        );
 
   @override
   State<CommonScaffold> createState() => CommonScaffoldState();
@@ -67,70 +49,40 @@ class CommonScaffold extends StatefulWidget {
 
 class CommonScaffoldState extends State<CommonScaffold> {
   late final ValueNotifier<AppBarState> _appBarState;
-  final ValueNotifier<Widget?> _floatingActionButton = ValueNotifier(null);
+  final ValueNotifier<bool> _loadingNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isFabExtendedNotifier = ValueNotifier(true);
   final ValueNotifier<List<String>> _keywordsNotifier = ValueNotifier([]);
-  final ValueNotifier<bool> _loading = ValueNotifier(false);
-
   final _textController = TextEditingController();
 
-  Function(List<String>)? _onKeywordsUpdate;
-
-  Widget? get _sideNavigationBar => widget.sideNavigationBar;
-
-  set actions(List<Widget> actions) {
-    _appBarState.value = _appBarState.value.copyWith(actions: actions);
-  }
-
-  set leading(Widget? leading) {
-    _appBarState.value = _appBarState.value.copyWith(leading: leading);
-  }
-
   bool get _isSearch {
-    return _appBarState.value.searchState?.isSearch == true;
+    return _appBarState.value.searchState?.query != null;
   }
 
   bool get _isEdit {
-    return _appBarState.value.editState?.isEdit == true;
-  }
-
-  set onKeywordsUpdate(Function(List<String>)? onKeywordsUpdate) {
-    _onKeywordsUpdate = onKeywordsUpdate;
+    final editState = _appBarState.value.editState;
+    if (editState == null) {
+      return false;
+    }
+    return editState.editCount > 0;
   }
 
   @override
   void initState() {
     super.initState();
     _appBarState = ValueNotifier(
-      AppBarState(
-        editState: widget.appBarEditState,
-      ),
+      AppBarState(editState: widget.editState, searchState: widget.searchState),
     );
+    _loadingNotifier.value = widget.isLoading;
   }
 
-  updateSearchState(
-    AppBarSearchState? Function(AppBarSearchState? state) builder,
-  ) {
+  Future<void> _updateSearchState(AppBarSearchStateBuilder builder) async {
     _appBarState.value = _appBarState.value.copyWith(
-      searchState: builder(
-        _appBarState.value.searchState,
-      ),
+      searchState: builder(_appBarState.value.searchState),
     );
   }
 
-  updateEditState(
-    AppBarEditState? Function(AppBarEditState? state) builder,
-  ) {
-    _appBarState.value = _appBarState.value.copyWith(
-      editState: builder(
-        _appBarState.value.editState,
-      ),
-    );
-  }
-
-  set floatingActionButton(Widget? floatingActionButton) {
-    if (_floatingActionButton.value != floatingActionButton) {
-      _floatingActionButton.value = floatingActionButton;
-    }
+  void handleToSearch() {
+    _updateSearchState((state) => state?.copyWith(query: ''));
   }
 
   Widget _buildSearchingAppBarTheme(Widget child) {
@@ -155,88 +107,64 @@ class CommonScaffoldState extends State<CommonScaffold> {
     );
   }
 
-  Future<T?> loadingRun<T>(
-    Future<T> Function() futureFunction, {
-    String? title,
-  }) async {
-    _loading.value = true;
-    try {
-      final res = await futureFunction();
-      _loading.value = false;
-      return res;
-    } catch (e) {
-      globalState.showMessage(
-        title: title ?? appLocalizations.tip,
-        message: TextSpan(
-          text: e.toString(),
-        ),
+  @override
+  void didUpdateWidget(CommonScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.editState != widget.editState) {
+      _appBarState.value = _appBarState.value.copyWith(
+        editState: widget.editState,
       );
-      _loading.value = false;
-      return null;
+    }
+    if (oldWidget.searchState != widget.searchState) {
+      _appBarState.value = _appBarState.value.copyWith(
+        searchState: widget.searchState,
+      );
+    }
+    if (oldWidget.isLoading != widget.isLoading) {
+      _loadingNotifier.value = widget.isLoading;
     }
   }
 
-  _handleClearInput() {
-    _textController.text = "";
-
+  void _handleClearInput() {
+    _textController.text = '';
     if (_appBarState.value.searchState != null) {
-      _appBarState.value.searchState!.onSearch("");
+      _appBarState.value.searchState!.onSearch('');
     }
   }
 
-  _handleClear() {
+  void _handleClear() {
     if (_textController.text.isNotEmpty) {
       _handleClearInput();
       return;
     }
-    updateSearchState(
-      (state) => state?.copyWith(
-        isSearch: false,
-      ),
-    );
+    _updateSearchState((state) => state?.copyWith(query: null));
   }
 
-  _handleExitSearching() {
+  void handleExitSearching() {
+    if (!_isSearch) {
+      return;
+    }
     _handleClearInput();
-    updateSearchState(
-      (state) => state?.copyWith(
-        isSearch: false,
-      ),
-    );
+    _updateSearchState((state) => state?.copyWith(query: null));
   }
 
   @override
   void dispose() {
     _appBarState.dispose();
     _textController.dispose();
-    _floatingActionButton.dispose();
+    _isFabExtendedNotifier.dispose();
+    _loadingNotifier.dispose();
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(CommonScaffold oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.title != widget.title) {
-      _appBarState.value = AppBarState();
-      _floatingActionButton.value = null;
-      _textController.text = "";
-      _keywordsNotifier.value = [];
-      _onKeywordsUpdate = null;
-    } else if (oldWidget.appBarEditState != widget.appBarEditState) {
-      _appBarState.value = _appBarState.value.copyWith(
-        editState: widget.appBarEditState,
-      );
-    }
-  }
-
-  addKeyword(String keyword) {
+  void addKeyword(String keyword) {
     final isContains = _keywordsNotifier.value.contains(keyword);
     if (isContains) return;
     final keywords = List<String>.from(_keywordsNotifier.value)..add(keyword);
     _keywordsNotifier.value = keywords;
   }
 
-  _deleteKeyword(String keyword) {
+  void _deleteKeyword(String keyword) {
     final isContains = _keywordsNotifier.value.contains(keyword);
     if (!isContains) return;
     final keywords = List<String>.from(_keywordsNotifier.value)
@@ -244,27 +172,32 @@ class CommonScaffoldState extends State<CommonScaffold> {
     _keywordsNotifier.value = keywords;
   }
 
-  Widget? _buildLeading() {
+  Widget? _buildLeading(VoidCallback? backAction) {
     if (_isEdit) {
       return IconButton(
         onPressed: _appBarState.value.editState?.onExit,
         icon: Icon(Icons.close),
       );
     }
-    return _isSearch
-        ? IconButton(
-            onPressed: _handleExitSearching,
-            icon: Icon(Icons.arrow_back),
+    if (_isSearch) {
+      return IconButton(
+        onPressed: handleExitSearching,
+        icon: Icon(Icons.arrow_back),
+      );
+    }
+    return backAction != null
+        ? BackButton(
+            onPressed: () {
+              if (!mounted) {
+                return;
+              }
+              backAction();
+            },
           )
-        : _appBarState.value.leading ?? widget.leading;
+        : null;
   }
 
   Widget _buildTitle(AppBarSearchState? startState) {
-    // 如果有自定义 leading，则不显示标题
-    if (_appBarState.value.leading != null && !_isSearch && !_isEdit) {
-      return const SizedBox.shrink();
-    }
-    
     return _isSearch
         ? TextField(
             autofocus: true,
@@ -275,47 +208,33 @@ class CommonScaffoldState extends State<CommonScaffold> {
                 startState.onSearch(value);
               }
             },
-            decoration: InputDecoration(
-              hintText: appLocalizations.search,
-            ),
+            decoration: InputDecoration(hintText: appLocalizations.search),
           )
         : Text(
             !_isEdit
                 ? widget.title!
                 : appLocalizations.selectedCountTitle(
-                    "${_appBarState.value.editState?.editCount ?? 0}",
+                    '${_appBarState.value.editState?.editCount ?? 0}',
                   ),
           );
   }
 
-  List<Widget> _buildActions(
-    bool hasSearch,
-    List<Widget> actions,
-  ) {
+  List<Widget> _buildActions(bool hasSearch, List<Widget> actions) {
     if (_isSearch) {
       return genActions([
-        IconButton(
-          onPressed: _handleClear,
-          icon: Icon(Icons.close),
-        ),
+        IconButton(onPressed: _handleClear, icon: Icon(Icons.close)),
       ]);
     }
-    return genActions(
-      [
-        if (hasSearch)
-          IconButton(
-            onPressed: () {
-              updateSearchState(
-                (state) => state?.copyWith(
-                  isSearch: true,
-                ),
-              );
-            },
-            icon: Icon(Icons.search),
-          ),
-        ...actions
-      ],
-    );
+    return genActions([
+      if (hasSearch && widget.searchState?.autoAddSearch == true)
+        IconButton(
+          onPressed: () {
+            _updateSearchState((state) => state?.copyWith(query: ''));
+          },
+          icon: Icon(Icons.search),
+        ),
+      ...actions,
+    ]);
   }
 
   Widget _buildAppBarWrap(Widget child) {
@@ -323,9 +242,9 @@ class CommonScaffoldState extends State<CommonScaffold> {
     if (_isEdit || _isSearch) {
       return SystemBackBlock(
         child: CommonPopScope(
-          onPop: () {
+          onPop: (context) {
             if (_isEdit || _isSearch) {
-              _handleExitSearching();
+              handleExitSearching();
               _appBarState.value.editState?.onExit();
               return false;
             }
@@ -338,64 +257,44 @@ class CommonScaffoldState extends State<CommonScaffold> {
     return appBar;
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(VoidCallback? backAction) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          appBarTheme: AppBarTheme(
-            systemOverlayStyle: SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Brightness.light
-                      : Brightness.dark,
-              systemNavigationBarIconBrightness:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Brightness.light
-                      : Brightness.dark,
-              systemNavigationBarColor: widget.bottomNavigationBar != null
-                  ? context.colorScheme.surfaceContainer
-                  : context.colorScheme.surface,
-              systemNavigationBarDividerColor: Colors.transparent,
-            ),
-          ),
-        ),
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            widget.appBar ??
-                ValueListenableBuilder<AppBarState>(
-                  valueListenable: _appBarState,
-                  builder: (_, state, __) {
-                    return _buildAppBarWrap(
-                      AppBar(
-                        centerTitle: widget.centerTitle ?? false,
-                        automaticallyImplyLeading:
-                            widget.automaticallyImplyLeading,
-                        leading: _buildLeading(),
-                        leadingWidth: widget.leadingWidth,
-                        title: _buildTitle(state.searchState),
-                        actions: _buildActions(
-                          state.searchState != null,
-                          state.actions.isNotEmpty
-                              ? state.actions
-                              : widget.actions ?? [],
-                        ),
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          widget.appBar ??
+              ValueListenableBuilder<AppBarState>(
+                valueListenable: _appBarState,
+                builder: (_, state, _) {
+                  return _buildAppBarWrap(
+                    AppBar(
+                      automaticallyImplyLeading: backAction != null
+                          ? false
+                          : true,
+                      animateColor: true,
+                      centerTitle: widget.centerTitle ?? false,
+                      leading: _buildLeading(backAction),
+                      title: _buildTitle(state.searchState),
+                      actions: _buildActions(
+                        state.searchState != null,
+                        state.actions.isNotEmpty
+                            ? state.actions
+                            : widget.actions ?? [],
                       ),
-                    );
-                  },
-                ),
-            ValueListenableBuilder(
-              valueListenable: _loading,
-              builder: (_, value, __) {
-                return value == true
-                    ? const LinearProgressIndicator()
-                    : Container();
-              },
-            ),
-          ],
-        ),
+                    ),
+                  );
+                },
+              ),
+          ValueListenableBuilder(
+            valueListenable: _loadingNotifier,
+            builder: (_, value, _) {
+              return value == true
+                  ? const LinearProgressIndicator()
+                  : Container();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -403,18 +302,19 @@ class CommonScaffoldState extends State<CommonScaffold> {
   @override
   Widget build(BuildContext context) {
     assert(widget.appBar != null || widget.title != null);
+    final backActionProvider = CommonScaffoldBackActionProvider.of(context);
     final body = SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ValueListenableBuilder(
             valueListenable: _keywordsNotifier,
-            builder: (_, keywords, __) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_onKeywordsUpdate != null) {
-                  _onKeywordsUpdate!(keywords);
-                }
-              });
+            builder: (_, keywords, _) {
+              if (widget.onKeywordsUpdate != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  widget.onKeywordsUpdate!(keywords);
+                });
+              }
               if (keywords.isEmpty) {
                 return SizedBox();
               }
@@ -440,56 +340,62 @@ class CommonScaffoldState extends State<CommonScaffold> {
               );
             },
           ),
-          Expanded(
-            child: widget.body,
-          ),
+          Expanded(child: widget.body),
         ],
       ),
     );
-    final scaffold = Scaffold(
-      appBar: _buildAppBar(),
-      body: body,
-      resizeToAvoidBottomInset: true,
+    return Scaffold(
+      appBar: _buildAppBar(backActionProvider?.backAction),
+      body: NotificationListener<UserScrollNotification>(
+        child: body,
+        onNotification: (notification) {
+          if (notification.direction == ScrollDirection.reverse) {
+            _isFabExtendedNotifier.value = false;
+          } else if (notification.direction == ScrollDirection.forward) {
+            _isFabExtendedNotifier.value = true;
+          }
+          return true;
+        },
+      ),
+      resizeToAvoidBottomInset: widget.resizeToAvoidBottomInset,
       backgroundColor: widget.backgroundColor,
-      floatingActionButton: widget.floatingActionButton ??
-          ValueListenableBuilder<Widget?>(
-            valueListenable: _floatingActionButton,
-            builder: (_, value, __) {
-              return IntrinsicWidth(
-                child: IntrinsicHeight(
-                  child: FadeScaleBox(
-                    child: value ?? SizedBox(),
-                  ),
-                ),
-              );
-            },
-          ),
-      bottomNavigationBar: widget.bottomNavigationBar,
+      floatingActionButton: widget.floatingActionButton != null
+          ? ValueListenableBuilder<bool>(
+              valueListenable: _isFabExtendedNotifier,
+              builder: (_, isExtended, child) {
+                return CommonScaffoldFabExtendedProvider(
+                  isExtended: isExtended,
+                  child: child!,
+                );
+              },
+              child: widget.floatingActionButton,
+            )
+          : null,
     );
-    return _sideNavigationBar != null
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _sideNavigationBar!,
-              Expanded(
-                flex: 1,
-                child: scaffold,
-              ),
-            ],
-          )
-        : scaffold;
   }
 }
 
 List<Widget> genActions(List<Widget> actions, {double? space}) {
   return <Widget>[
-    ...actions.separated(
-      SizedBox(
-        width: space ?? 4,
-      ),
-    ),
-    SizedBox(
-      width: 8,
-    )
+    ...actions.separated(SizedBox(width: space ?? 4)),
+    SizedBox(width: 8),
   ];
+}
+
+class BaseScaffold extends StatelessWidget {
+  final String title;
+  final List<Widget> actions;
+  final Widget body;
+
+  const BaseScaffold({
+    super.key,
+    required this.title,
+    this.actions = const [],
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CommonScaffold(body: body, title: title, actions: actions);
+  }
 }

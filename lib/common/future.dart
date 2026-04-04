@@ -3,42 +3,37 @@ import 'dart:ui';
 
 import 'package:fl_clash/common/common.dart';
 
-extension CompleterExt<T> on Completer<T> {
-  safeFuture({
+extension FutureExt<T> on Future<T> {
+  Future<T> withTimeout({
     Duration? timeout,
+    String? tag,
     VoidCallback? onLast,
     FutureOr<T> Function()? onTimeout,
-    required String functionName,
   }) {
-    final realTimeout = timeout ?? const Duration(seconds: 30);
+    final realTimeout = timeout ?? const Duration(minutes: 3);
     Timer(realTimeout + commonDuration, () {
       if (onLast != null) {
         onLast();
       }
     });
-    return future.withTimeout(
-      timeout: realTimeout,
-      functionName: functionName,
-      onTimeout: onTimeout,
-    );
-  }
-}
-
-extension FutureExt<T> on Future<T> {
-  Future<T> withTimeout({
-    required Duration timeout,
-    required String functionName,
-    FutureOr<T> Function()? onTimeout,
-  }) {
     return this.timeout(
-      timeout,
+      realTimeout,
       onTimeout: () async {
         if (onTimeout != null) {
           return onTimeout();
         } else {
-          throw TimeoutException('$functionName timeout');
+          throw TimeoutException('${tag ?? runtimeType} timeout');
         }
       },
     );
+  }
+}
+
+extension CompleterExt<T> on Completer<T> {
+  void safeCompleter(T value) {
+    if (isCompleted) {
+      return;
+    }
+    complete(value);
   }
 }

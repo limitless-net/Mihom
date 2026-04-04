@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/metacubex/mihomo/adapter/provider"
 	P "github.com/metacubex/mihomo/component/process"
-	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
@@ -18,7 +17,6 @@ type InitParams struct {
 }
 
 type SetupParams struct {
-	Config      *config.RawConfig `json:"config"`
 	SelectedMap map[string]string `json:"selected-map"`
 	TestURL     string            `json:"test-url"`
 }
@@ -68,6 +66,11 @@ type ExternalProvider struct {
 	SubscriptionInfo *provider.SubscriptionInfo `json:"subscription-info"`
 }
 
+type ProxiesData struct {
+	Proxies map[string]constant.Proxy `json:"proxies"`
+	All     []string                  `json:"all"`
+}
+
 const (
 	messageMethod                  Method = "message"
 	initClashMethod                Method = "initClash"
@@ -98,13 +101,10 @@ const (
 	startListenerMethod            Method = "startListener"
 	stopListenerMethod             Method = "stopListener"
 	updateDnsMethod                Method = "updateDns"
-	setStateMethod                 Method = "setState"
-	getAndroidVpnOptionsMethod     Method = "getAndroidVpnOptions"
-	getRunTimeMethod               Method = "getRunTime"
-	getCurrentProfileNameMethod    Method = "getCurrentProfileName"
 	crashMethod                    Method = "crash"
 	setupConfigMethod              Method = "setupConfig"
 	getConfigMethod                Method = "getConfig"
+	deleteFile                     Method = "deleteFile"
 )
 
 type Method string

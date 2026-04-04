@@ -17,12 +17,15 @@ import (
 	"github.com/metacubex/mihomo/constant/features"
 	cp "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/hub"
+	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/listener"
 	"github.com/metacubex/mihomo/log"
 	rp "github.com/metacubex/mihomo/rules/provider"
 	"github.com/metacubex/mihomo/tunnel"
 	"os"
+	"path/filepath"
+	"runtime"
 	"sync"
 )
 
@@ -33,12 +36,6 @@ var (
 	runLock       sync.Mutex
 	mBatch, _     = batch.New[bool](context.Background(), batch.WithConcurrencyNum[bool](50))
 )
-
-type ExternalProviders []ExternalProvider
-
-func (a ExternalProviders) Len() int           { return len(a) }
-func (a ExternalProviders) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a ExternalProviders) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func getExternalProvidersRaw() map[string]cp.Provider {
 	eps := make(map[string]cp.Provider)
@@ -114,11 +111,15 @@ func updateListeners() {
 	listeners := currentConfig.Listeners
 	general := currentConfig.General
 	listener.PatchInboundListeners(listeners, tunnel.Tunnel, true)
-	listener.SetAllowLan(general.AllowLan)
+
+	allowLan := general.AllowLan
+	listener.SetAllowLan(allowLan)
 	inbound.SetSkipAuthPrefixes(general.SkipAuthPrefixes)
 	inbound.SetAllowedIPs(general.LanAllowedIPs)
 	inbound.SetDisAllowedIPs(general.LanDisAllowedIPs)
-	listener.SetBindAddress(general.BindAddress)
+
+	bindAddress := general.BindAddress
+	listener.SetBindAddress(bindAddress)
 	listener.ReCreateHTTP(general.Port, tunnel.Tunnel)
 	listener.ReCreateSocks(general.SocksPort, tunnel.Tunnel)
 	listener.ReCreateRedir(general.RedirPort, tunnel.Tunnel)
@@ -159,7 +160,6 @@ func patchSelectGroup(mapping map[string]string) {
 
 func defaultSetupParams() *SetupParams {
 	return &SetupParams{
-		Config:      config.DefaultRawConfig(),
 		TestURL:     "https://www.gstatic.com/generate_204",
 		SelectedMap: map[string]string{},
 	}
@@ -235,12 +235,13 @@ func updateConfig(params *UpdateParams) {
 	updateListeners()
 }
 
-func setupConfig(params *SetupParams) error {
+func applyConfig(params *SetupParams) error {
+	runtime.GC()
 	runLock.Lock()
 	defer runLock.Unlock()
 	var err error
 	constant.DefaultTestURL = params.TestURL
-	currentConfig, err = config.ParseRawConfig(params.Config)
+	currentConfig, err = executor.ParseWithPath(filepath.Join(constant.Path.HomeDir(), "config.yaml"))
 	if err != nil {
 		currentConfig, _ = config.ParseRawConfig(config.DefaultRawConfig())
 	}

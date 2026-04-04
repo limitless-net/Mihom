@@ -1,15 +1,17 @@
-import 'package:fl_clash/common/app_localizations.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/models/common.dart';
+import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
 import 'package:fl_clash/widgets/dialog.dart';
 import 'package:fl_clash/widgets/null_status.dart';
+import 'package:fl_clash/widgets/pop_scope.dart';
+import 'package:fl_clash/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'card.dart';
 import 'effect.dart';
-import 'float_layout.dart';
 import 'list.dart';
+import 'theme.dart';
 
 class OptionsDialog<T> extends StatelessWidget {
   final String title;
@@ -29,33 +31,35 @@ class OptionsDialog<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return CommonDialog(
       title: title,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 16,
-      ),
-      child: Wrap(
-        children: [
-          for (final option in options)
-            Builder(
-              builder: (context) {
-                if (value == option) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    Scrollable.ensureVisible(context);
-                  });
-                }
-                return ListItem.radio(
-                  delegate: RadioDelegate(
-                    value: option,
-                    groupValue: value,
-                    onChanged: (T? value) {
-                      Navigator.of(context).pop(value);
-                    },
-                  ),
-                  title: Text(textBuilder(option)),
-                );
-              },
-            ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      child: RadioGroup(
+        onChanged: (value) {
+          Navigator.of(context).pop(value);
+        },
+        groupValue: value,
+        child: Wrap(
+          children: [
+            for (final option in options)
+              Builder(
+                builder: (context) {
+                  if (value == option) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      Scrollable.ensureVisible(context);
+                    });
+                  }
+                  return ListItem.radio(
+                    delegate: RadioDelegate(
+                      value: option,
+                      onTab: () {
+                        Navigator.of(context).pop(option);
+                      },
+                    ),
+                    title: Text(textBuilder(option)),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -92,6 +96,7 @@ class InputDialog extends StatefulWidget {
   final String? hintText;
   final FormFieldValidator<String>? validator;
   final AutovalidateMode? autovalidateMode;
+  final bool? obscureText;
 
   const InputDialog({
     super.key,
@@ -101,6 +106,7 @@ class InputDialog extends StatefulWidget {
     this.resetValue,
     this.hintText,
     this.validator,
+    this.obscureText,
     this.labelText,
     this.autovalidateMode = AutovalidateMode.onUserInteraction,
   });
@@ -112,7 +118,7 @@ class InputDialog extends StatefulWidget {
 class _InputDialogState extends State<InputDialog> {
   final _formKey = GlobalKey<FormState>();
 
-  late TextEditingController textController;
+  late TextEditingController _textController;
 
   String get value => widget.value;
 
@@ -123,22 +129,26 @@ class _InputDialogState extends State<InputDialog> {
   @override
   void initState() {
     super.initState();
-    textController = TextEditingController(
-      text: value,
-    );
+    _textController = TextEditingController(text: value);
   }
 
-  _handleUpdate() async {
+  Future<void> _handleUpdate() async {
     if (_formKey.currentState?.validate() == false) return;
-    final text = textController.value.text;
+    final text = _textController.value.text;
     Navigator.of(context).pop<String>(text);
   }
 
-  _handleReset() async {
+  Future<void> _handleReset() async {
     if (widget.resetValue == null) {
       return;
     }
     Navigator.of(context).pop<String>(widget.resetValue);
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   @override
@@ -147,19 +157,17 @@ class _InputDialogState extends State<InputDialog> {
       title: title,
       actions: [
         if (widget.resetValue != null &&
-            textController.value.text != widget.resetValue) ...[
+            _textController.value.text != widget.resetValue) ...[
           TextButton(
             onPressed: _handleReset,
             child: Text(appLocalizations.reset),
           ),
-          const SizedBox(
-            width: 4,
-          ),
+          const SizedBox(width: 4),
         ],
         TextButton(
           onPressed: _handleUpdate,
           child: Text(appLocalizations.submit),
-        )
+        ),
       ],
       child: Form(
         autovalidateMode: widget.autovalidateMode,
@@ -168,10 +176,11 @@ class _InputDialogState extends State<InputDialog> {
           runSpacing: 16,
           children: [
             TextFormField(
+              obscureText: widget.obscureText ?? false,
               keyboardType: TextInputType.url,
-              maxLines: 5,
+              maxLines: widget.obscureText == true ? 1 : 5,
               minLines: 1,
-              controller: textController,
+              controller: _textController,
               onFieldSubmitted: (_) {
                 _handleUpdate();
               },
@@ -190,33 +199,70 @@ class _InputDialogState extends State<InputDialog> {
   }
 }
 
-class ListInputPage extends StatelessWidget {
+class ListInputPage extends ConsumerStatefulWidget {
   final String title;
   final List<String> items;
   final Widget Function(String item) titleBuilder;
   final Widget Function(String item)? subtitleBuilder;
   final Widget Function(String item)? leadingBuilder;
   final String? valueLabel;
-  final Function(List<String> items) onChange;
 
   const ListInputPage({
     super.key,
     required this.title,
     required this.items,
     required this.titleBuilder,
-    required this.onChange,
     this.leadingBuilder,
     this.valueLabel,
     this.subtitleBuilder,
   });
 
-  _handleAddOrEdit([String? item]) async {
+  @override
+  ConsumerState createState() => _ListInputPageState();
+}
+
+class _ListInputPageState extends ConsumerState<ListInputPage> {
+  List<String> _items = [];
+  late List<String> _originItems;
+  final _key = utils.id;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = widget.items;
+    _originItems = List<String>.from(_items);
+  }
+
+  void _handleReorder(int oldIndex, newIndex) {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final nextItems = List<String>.from(_items);
+    final item = nextItems.removeAt(oldIndex);
+    nextItems.insert(newIndex, item);
+    _items = nextItems;
+    setState(() {});
+  }
+
+  void _handleSelected(String value) {
+    ref.read(selectedItemsProvider(_key).notifier).update((state) {
+      final newState = Set<String>.from(state)..addOrRemove(value);
+      return newState;
+    });
+  }
+
+  void _handleSelectAll() {
+    final ids = _items.toSet();
+    ref.read(selectedItemsProvider(_key).notifier).update((selected) {
+      return selected.containsAll(ids) ? {} : ids;
+    });
+  }
+
+  Future<void> _handleAddOrEdit([String? item]) async {
     uniqueValidator(String? value) {
-      final index = items.indexWhere(
-        (entry) {
-          return entry == value;
-        },
-      );
+      final index = _items.indexWhere((entry) {
+        return entry == value;
+      });
       final current = item == value;
       if (index != -1 && !current) {
         return appLocalizations.existsTip(appLocalizations.value);
@@ -224,109 +270,179 @@ class ListInputPage extends StatelessWidget {
       return null;
     }
 
-    final valueField = Field(
-      label: valueLabel ?? appLocalizations.value,
-      value: item ?? "",
-      validator: uniqueValidator,
-    );
     final value = await globalState.showCommonDialog<String>(
       child: AddDialog(
-        valueField: valueField,
-        title: title,
+        valueField: Field(
+          label: widget.valueLabel ?? appLocalizations.value,
+          value: item ?? '',
+          validator: uniqueValidator,
+        ),
+        title: item != null ? appLocalizations.edit : appLocalizations.add,
       ),
     );
+
     if (value == null) return;
-    final index = items.indexWhere(
-      (entry) {
-        return entry == item;
-      },
-    );
-    final nextItems = List<String>.from(items);
+    final index = _items.indexWhere((entry) {
+      return entry == item;
+    });
+    final nextItems = List<String>.from(_items);
     if (item != null) {
       nextItems[index] = value;
     } else {
       nextItems.add(value);
     }
-    onChange(nextItems);
+    _items = nextItems;
+    setState(() {});
   }
 
-  _handleDelete(String? item) {
-    final entries = List<String>.from(
-      items,
+  void _handleDelete() {
+    final selectedItems = ref.read(selectedItemsProvider(_key));
+    final newItems = _items
+        .where((item) => !selectedItems.contains(item))
+        .toList();
+    _items = newItems;
+    ref.read(selectedItemsProvider(_key).notifier).value = {};
+    setState(() {});
+  }
+
+  Future<void> _handleReset() async {
+    final res = await globalState.showMessage(
+      message: TextSpan(text: appLocalizations.resetPageChangesTip),
     );
-    final index = entries.indexWhere(
-      (entry) {
-        return entry == item;
-      },
-    );
-    if (index != -1) {
-      entries.removeAt(index);
+    if (res != true) {
+      return;
     }
-    onChange(entries);
+    _items = _originItems;
+    setState(() {});
+  }
+
+  Widget _buildItem({
+    required String value,
+    required int index,
+    required int totalLength,
+    required bool isSelected,
+    required bool isEditing,
+    isDecorator = false,
+  }) {
+    final isFirst = index == 0;
+    final isLast = index == totalLength - 1;
+    return ReorderableDelayedDragStartListener(
+      key: ValueKey(value),
+      index: index,
+      child: CommonSelectedInputListItem(
+        isDecorator: isDecorator,
+        isLast: isLast,
+        isFirst: isFirst,
+        title: widget.titleBuilder(value),
+        isSelected: isSelected,
+        isEditing: isEditing,
+        onSelected: () {
+          _handleSelected(value);
+        },
+        onPressed: () {
+          _handleAddOrEdit(value);
+        },
+        leading: widget.leadingBuilder != null
+            ? widget.leadingBuilder!(value)
+            : null,
+        subtitle: widget.subtitleBuilder != null
+            ? widget.subtitleBuilder!(value)
+            : null,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FloatLayout(
-      floatingWidget: FloatWrapper(
-        child: FloatingActionButton(
-          onPressed: () async {
-            _handleAddOrEdit();
-          },
-          child: const Icon(Icons.add),
-        ),
-      ),
-      child: items.isEmpty
-          ? NullStatus(label: appLocalizations.noData)
-          : ReorderableListView.builder(
-              padding: const EdgeInsets.only(
-                bottom: 16 + 64,
+    final selectedItems = ref.watch(selectedItemsProvider(_key));
+    return CommonPopScope(
+      onPop: (_) {
+        if (selectedItems.isNotEmpty) {
+          ref.read(selectedItemsProvider(_key).notifier).value = {};
+          return false;
+        }
+        Navigator.of(context).pop(_items);
+        return false;
+      },
+      child: CommonScaffold(
+        title: widget.title,
+        actions: [
+          if (selectedItems.isNotEmpty) ...[
+            CommonMinIconButtonTheme(
+              child: IconButton.filledTonal(
+                onPressed: _handleDelete,
+                icon: Icon(Icons.delete),
               ),
-              buildDefaultDragHandles: false,
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final e = items[index];
-                return _InputItem(
-                  key: ValueKey(e),
-                  ReorderableDelayedDragStartListener(
-                    index: index,
-                    child: CommonCard(
-                      child: ListItem(
-                        leading:
-                            leadingBuilder != null ? leadingBuilder!(e) : null,
-                        title: titleBuilder(e),
-                        subtitle: subtitleBuilder != null
-                            ? subtitleBuilder!(e)
-                            : null,
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () {
-                            _handleDelete(e);
-                          },
-                        ),
-                      ),
-                      onPressed: () {
-                        _handleAddOrEdit(e);
-                      },
-                    ),
-                  ),
-                );
-              },
-              onReorder: (oldIndex, newIndex) {
-                if (oldIndex < newIndex) {
-                  newIndex -= 1;
-                }
-                final nextItems = List<String>.from(items);
-                final item = nextItems.removeAt(oldIndex);
-                nextItems.insert(newIndex, item);
-                onChange(nextItems);
-              },
             ),
+            SizedBox(width: 2),
+          ] else if (!stringListEquality.equals(_items, _originItems)) ...[
+            CommonMinIconButtonTheme(
+              child: IconButton.filledTonal(
+                onPressed: _handleReset,
+                icon: const Icon(Icons.replay),
+              ),
+            ),
+            SizedBox(width: 2),
+          ],
+          CommonMinFilledButtonTheme(
+            child: selectedItems.isNotEmpty
+                ? FilledButton(
+                    onPressed: _handleSelectAll,
+                    child: Text(appLocalizations.selectAll),
+                  )
+                : FilledButton.tonal(
+                    onPressed: () {
+                      _handleAddOrEdit();
+                    },
+                    child: Text(appLocalizations.add),
+                  ),
+          ),
+          SizedBox(width: 8),
+        ],
+        body: _items.isEmpty
+            ? NullStatus(label: appLocalizations.noData)
+            : ReorderableListView.builder(
+                padding: const EdgeInsets.only(
+                  bottom: 16 + 64,
+                  top: 16,
+                  left: 16,
+                  right: 16,
+                ),
+                buildDefaultDragHandles: false,
+                itemCount: _items.length,
+                itemBuilder: (context, index) {
+                  final value = _items[index];
+                  return _buildItem(
+                    value: value,
+                    index: index,
+                    totalLength: _items.length,
+                    isSelected: selectedItems.contains(value),
+                    isEditing: selectedItems.isNotEmpty,
+                  );
+                },
+                proxyDecorator: (child, index, animation) {
+                  final value = _items[index];
+                  return commonProxyDecorator(
+                    _buildItem(
+                      value: value,
+                      index: index,
+                      totalLength: _items.length,
+                      isDecorator: true,
+                      isSelected: selectedItems.contains(value),
+                      isEditing: selectedItems.isNotEmpty,
+                    ),
+                    index,
+                    animation,
+                  );
+                },
+                onReorder: _handleReorder,
+              ),
+      ),
     );
   }
 }
 
-class MapInputPage extends StatelessWidget {
+class MapInputPage extends ConsumerStatefulWidget {
   final String title;
   final Map<String, String> map;
   final Widget Function(MapEntry<String, String> item) titleBuilder;
@@ -334,32 +450,64 @@ class MapInputPage extends StatelessWidget {
   final Widget Function(MapEntry<String, String> item)? leadingBuilder;
   final String? keyLabel;
   final String? valueLabel;
-  final Function(Map<String, String> items) onChange;
 
   const MapInputPage({
     super.key,
     required this.title,
     required this.map,
     required this.titleBuilder,
-    required this.onChange,
     this.leadingBuilder,
     this.keyLabel,
     this.valueLabel,
     this.subtitleBuilder,
   });
 
-  List<MapEntry<String, String>> get items =>
-      List<MapEntry<String, String>>.from(
-        map.entries,
-      );
+  @override
+  ConsumerState<MapInputPage> createState() => _MapInputPageState();
+}
 
-  _handleAddOrEdit([MapEntry<String, String>? item]) async {
+class _MapInputPageState extends ConsumerState<MapInputPage> {
+  List<MapEntry<String, String>> _items = [];
+  late final List<MapEntry<String, String>> _originItems;
+  final _key = utils.id;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = List<MapEntry<String, String>>.from(widget.map.entries);
+    _originItems = List<MapEntry<String, String>>.from(_items);
+  }
+
+  void _handleReorder(int oldIndex, newIndex) {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final nextItems = List<MapEntry<String, String>>.from(_items);
+    final item = nextItems.removeAt(oldIndex);
+    nextItems.insert(newIndex, item);
+    _items = nextItems;
+    setState(() {});
+  }
+
+  void _handleSelected(MapEntry<String, String> value) {
+    ref.read(selectedItemsProvider(_key).notifier).update((state) {
+      final newState = Set<String>.from(state)..addOrRemove(value.key);
+      return newState;
+    });
+  }
+
+  void _handleSelectAll() {
+    final ids = _items.map((item) => item.key).toSet();
+    ref.read(selectedItemsProvider(_key).notifier).update((selected) {
+      return selected.containsAll(ids) ? {} : ids;
+    });
+  }
+
+  Future<void> _handleAddOrEdit([MapEntry<String, String>? item]) async {
     uniqueValidator(String? value) {
-      final index = items.indexWhere(
-        (entry) {
-          return entry.key == value;
-        },
-      );
+      final index = _items.indexWhere((entry) {
+        return entry.key == value;
+      });
       final current = item?.key == value;
       if (index != -1 && !current) {
         return appLocalizations.existsTip(appLocalizations.key);
@@ -368,112 +516,184 @@ class MapInputPage extends StatelessWidget {
     }
 
     final keyField = Field(
-      label: keyLabel ?? appLocalizations.key,
-      value: item == null ? "" : item.key,
+      label: widget.keyLabel ?? appLocalizations.key,
+      value: item == null ? '' : item.key,
       validator: uniqueValidator,
     );
 
     final valueField = Field(
-      label: valueLabel ?? appLocalizations.value,
-      value: item == null ? "" : item.value,
+      label: widget.valueLabel ?? appLocalizations.value,
+      value: item == null ? '' : item.value,
     );
 
     final value = await globalState.showCommonDialog<MapEntry<String, String>>(
       child: AddDialog(
         keyField: keyField,
         valueField: valueField,
-        title: title,
+        title: item != null ? appLocalizations.edit : appLocalizations.add,
       ),
     );
     if (value == null) return;
-    final index = items.indexWhere(
-      (entry) {
-        return entry.key == item?.key;
-      },
-    );
+    final index = _items.indexWhere((entry) {
+      return entry.key == item?.key;
+    });
 
-    final nextItems = List<MapEntry<String, String>>.from(items);
+    final nextItems = List<MapEntry<String, String>>.from(_items);
     if (item != null) {
       nextItems[index] = value;
     } else {
       nextItems.add(value);
     }
-    onChange(Map.fromEntries(nextItems));
+    _items = nextItems;
+    setState(() {});
   }
 
-  _handleDelete(MapEntry<String, String> item) {
-    final entries = List<MapEntry<String, String>>.from(
-      items,
+  void _handleDelete() {
+    final selectedItems = ref.read(selectedItemsProvider(_key));
+    final newItems = _items
+        .where((item) => !selectedItems.contains(item.key))
+        .toList();
+    _items = newItems;
+    ref.read(selectedItemsProvider(_key).notifier).value = {};
+    setState(() {});
+  }
+
+  Future<void> _handleReset() async {
+    final res = await globalState.showMessage(
+      message: TextSpan(text: appLocalizations.resetPageChangesTip),
     );
-    final index = entries.indexWhere(
-      (entry) {
-        return entry.key == item.key && item.value == entry.value;
-      },
-    );
-    if (index != -1) {
-      entries.removeAt(index);
+    if (res != true) {
+      return;
     }
-    onChange(Map.fromEntries(entries));
+    _items = _originItems;
+    setState(() {});
+  }
+
+  Widget _buildItem({
+    required MapEntry<String, String> value,
+    required int index,
+    required int totalLength,
+    required bool isSelected,
+    required bool isEditing,
+    isDecorator = false,
+  }) {
+    final isFirst = index == 0;
+    final isLast = index == totalLength - 1;
+    return ReorderableDelayedDragStartListener(
+      key: ValueKey(value),
+      index: index,
+      child: CommonSelectedInputListItem(
+        isDecorator: isDecorator,
+        isLast: isLast,
+        isFirst: isFirst,
+        title: widget.titleBuilder(value),
+        leading: widget.leadingBuilder != null
+            ? widget.leadingBuilder!(value)
+            : null,
+        subtitle: widget.subtitleBuilder != null
+            ? widget.subtitleBuilder!(value)
+            : null,
+        isSelected: isSelected,
+        isEditing: isEditing,
+        onSelected: () {
+          _handleSelected(value);
+        },
+        onPressed: () {
+          _handleAddOrEdit(value);
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FloatLayout(
-      floatingWidget: FloatWrapper(
-        child: FloatingActionButton(
-          onPressed: () async {
-            _handleAddOrEdit();
-          },
-          child: const Icon(Icons.add),
-        ),
-      ),
-      child: items.isEmpty
-          ? NullStatus(label: appLocalizations.noData)
-          : ReorderableListView.builder(
-              padding: const EdgeInsets.only(
-                bottom: 16 + 64,
+    final selectedItems = ref.watch(selectedItemsProvider(_key));
+    return CommonPopScope(
+      onPop: (_) {
+        if (selectedItems.isNotEmpty) {
+          ref.read(selectedItemsProvider(_key).notifier).value = {};
+          return false;
+        }
+        Navigator.of(context).pop(Map<String, String>.fromEntries(_items));
+        return false;
+      },
+      child: CommonScaffold(
+        title: widget.title,
+        actions: [
+          if (selectedItems.isNotEmpty) ...[
+            CommonMinIconButtonTheme(
+              child: IconButton.filledTonal(
+                onPressed: _handleDelete,
+                icon: Icon(Icons.delete),
               ),
-              proxyDecorator: proxyDecorator,
-              buildDefaultDragHandles: false,
-              itemCount: items.length,
-              itemBuilder: (_, index) {
-                final e = items[index];
-                return _InputItem(
-                  key: ValueKey(e.key),
-                  ReorderableDelayedDragStartListener(
-                    index: index,
-                    child: CommonCard(
-                      child: ListItem(
-                        leading:
-                            leadingBuilder != null ? leadingBuilder!(e) : null,
-                        title: titleBuilder(e),
-                        subtitle: subtitleBuilder != null
-                            ? subtitleBuilder!(e)
-                            : null,
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () {
-                            _handleDelete(e);
-                          },
-                        ),
-                      ),
-                      onPressed: () {
-                        _handleAddOrEdit(e);
-                      },
-                    ),
-                  ),
-                );
-              },
-              onReorder: (oldIndex, newIndex) {
-                if (oldIndex < newIndex) {
-                  newIndex -= 1;
-                }
-                final nextItems = List<MapEntry<String, String>>.from(items);
-                final item = nextItems.removeAt(oldIndex);
-                nextItems.insert(newIndex, item);
-                onChange(Map.fromEntries(nextItems));
-              },
             ),
+            SizedBox(width: 2),
+          ] else if (!stringAndStringMapEntryListEquality.equals(
+            _items,
+            _originItems,
+          )) ...[
+            CommonMinIconButtonTheme(
+              child: IconButton.filledTonal(
+                onPressed: _handleReset,
+                icon: const Icon(Icons.replay),
+              ),
+            ),
+            SizedBox(width: 2),
+          ],
+          CommonMinFilledButtonTheme(
+            child: selectedItems.isNotEmpty
+                ? FilledButton(
+                    onPressed: _handleSelectAll,
+                    child: Text(appLocalizations.selectAll),
+                  )
+                : FilledButton.tonal(
+                    onPressed: () {
+                      _handleAddOrEdit();
+                    },
+                    child: Text(appLocalizations.add),
+                  ),
+          ),
+          SizedBox(width: 8),
+        ],
+        body: _items.isEmpty
+            ? NullStatus(label: appLocalizations.noData)
+            : ReorderableListView.builder(
+                padding: const EdgeInsets.only(
+                  bottom: 16 + 64,
+                  top: 16,
+                  left: 16,
+                  right: 16,
+                ),
+                buildDefaultDragHandles: false,
+                itemCount: _items.length,
+                itemBuilder: (context, index) {
+                  final value = _items[index];
+                  return _buildItem(
+                    value: value,
+                    index: index,
+                    totalLength: _items.length,
+                    isSelected: selectedItems.contains(value.key),
+                    isEditing: selectedItems.isNotEmpty,
+                  );
+                },
+                proxyDecorator: (child, index, animation) {
+                  final value = _items[index];
+                  return commonProxyDecorator(
+                    _buildItem(
+                      value: value,
+                      index: index,
+                      totalLength: _items.length,
+                      isDecorator: true,
+                      isSelected: selectedItems.contains(value.key),
+                      isEditing: selectedItems.isNotEmpty,
+                    ),
+                    index,
+                    animation,
+                  );
+                },
+                onReorder: _handleReorder,
+              ),
+      ),
     );
   }
 }
@@ -495,8 +715,8 @@ class AddDialog extends StatefulWidget {
 }
 
 class _AddDialogState extends State<AddDialog> {
-  TextEditingController? keyController;
-  late TextEditingController valueController;
+  TextEditingController? _keyController;
+  late TextEditingController _valueController;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   Field? get keyField => widget.keyField;
@@ -507,29 +727,27 @@ class _AddDialogState extends State<AddDialog> {
   void initState() {
     super.initState();
     if (keyField != null) {
-      keyController = TextEditingController(
-        text: keyField!.value,
-      );
+      _keyController = TextEditingController(text: keyField!.value);
     }
-    valueController = TextEditingController(
-      text: valueField.value,
-    );
+    _valueController = TextEditingController(text: valueField.value);
   }
 
-  _submit() {
+  void _submit() {
     if (!_formKey.currentState!.validate()) return;
     if (keyField != null) {
       Navigator.of(context).pop<MapEntry<String, String>>(
-        MapEntry(
-          keyController!.text,
-          valueController.text,
-        ),
+        MapEntry(_keyController!.text, _valueController.text),
       );
     } else {
-      Navigator.of(context).pop<String>(
-        valueController.text,
-      );
+      Navigator.of(context).pop<String>(_valueController.text);
     }
+  }
+
+  @override
+  void dispose() {
+    _keyController?.dispose();
+    _valueController.dispose();
+    super.dispose();
   }
 
   @override
@@ -537,10 +755,7 @@ class _AddDialogState extends State<AddDialog> {
     return CommonDialog(
       title: widget.title,
       actions: [
-        TextButton(
-          onPressed: _submit,
-          child: Text(appLocalizations.confirm),
-        )
+        TextButton(onPressed: _submit, child: Text(appLocalizations.confirm)),
       ],
       child: Form(
         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -550,9 +765,9 @@ class _AddDialogState extends State<AddDialog> {
           children: [
             if (keyField != null)
               TextFormField(
-                maxLines: 2,
+                maxLines: 3,
                 minLines: 1,
-                controller: keyController,
+                controller: _keyController,
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
                   labelText: keyField!.label,
@@ -574,11 +789,15 @@ class _AddDialogState extends State<AddDialog> {
             TextFormField(
               maxLines: 3,
               minLines: 1,
-              controller: valueController,
+              keyboardType: TextInputType.text,
+              controller: _valueController,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
                 labelText: valueField.label,
               ),
+              onFieldSubmitted: (_) {
+                _submit();
+              },
               validator: (String? value) {
                 String? res;
                 if (valueField.validator != null) {
@@ -595,26 +814,6 @@ class _AddDialogState extends State<AddDialog> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _InputItem extends StatelessWidget {
-  final Widget child;
-
-  const _InputItem(this.child, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      elevation: 0,
-      key: key,
-      color: Colors.transparent,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        margin: EdgeInsets.symmetric(vertical: 8),
-        child: child,
       ),
     );
   }

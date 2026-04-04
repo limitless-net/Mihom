@@ -21,7 +21,7 @@ migrate_working_dir/
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
-#.vscode/
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -35,37 +35,36 @@ migrate_working_dir/
 /build/
 /dist/
 
-# Generated files (build_runner, freezed, etc.)
-*.g.dart
-*.freezed.dart
-
 # Symbolication related
 app.*.symbols
 
 # Obfuscation related
 app.*.map.json
 
+#AI generated
+CLAUDE.md
+/.claude
+
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/**/.cxx
+/android/**/build
+/android/common/**/.**/
+/android/common/local.*
+/android/core/**/includes/
+/android/core/**/cmake-build-*/
+/android/core/**/jniLibs/
 
-
-
-#libclash
+#FlClash
 /libclash/
-
-#jniLibs
 /android/app/src/main/jniLibs/
+/services/helper/target
+/macos/**/Package.resolved
+devtools_options.yaml
 
-# Android CXX build artifacts
-/android/core/.cxx/
-
-# XBoard 配置文件（用户自定义，不提交）
-# 只忽略根目录的配置文件，assets/config/ 下的要提交
-/xboard.config.yaml
-/xboard.config.yml
-assets/config/xboard.config.yaml
-
-# 忽略证书文件
-assets/cer/
+# FVM Version Cache
+.fvm/
+.fvmrc

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:fl_clash/common/color.dart';
-import 'package:fl_clash/state.dart';
+import 'package:fl_clash/controller.dart';
 import 'package:fl_clash/widgets/activate_box.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -32,10 +32,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   _handleBarcode(BarcodeCapture barcodeCapture) {
     final barcode = barcodeCapture.barcodes.first;
     if (barcode.type == BarcodeType.url) {
-      Navigator.pop<String>(
-        context,
-        barcode.rawValue,
-      );
+      Navigator.pop<String>(context, barcode.rawValue);
     } else {
       Navigator.pop(context);
     }
@@ -77,16 +74,14 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
               scanWindow: scanWindow,
             ),
           ),
-          CustomPaint(
-            painter: ScannerOverlay(scanWindow: scanWindow),
-          ),
+          CustomPaint(painter: ScannerOverlay(scanWindow: scanWindow)),
           AppBar(
             backgroundColor: Colors.transparent,
             automaticallyImplyLeading: false,
             leading: IconButton(
-              style: const ButtonStyle(
-                iconSize: WidgetStatePropertyAll(32),
-                foregroundColor: WidgetStatePropertyAll(Colors.white),
+              style: IconButton.styleFrom(
+                iconSize: 32,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
                 Navigator.of(context).pop();
@@ -120,18 +115,16 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                       child: IconButton(
                         color: Colors.white,
                         icon: icon,
-                        style: ButtonStyle(
-                          foregroundColor:
-                              const WidgetStatePropertyAll(Colors.white),
-                          backgroundColor:
-                              WidgetStatePropertyAll(backgroundColor),
+                        style: IconButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: backgroundColor,
                         ),
                         onPressed: () => controller.toggleTorch(),
                       ),
                     ),
                   );
                 },
-              )
+              ),
             ],
           ),
           Container(
@@ -139,13 +132,13 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
             alignment: Alignment.bottomCenter,
             child: IconButton(
               color: Colors.white,
-              style: const ButtonStyle(
-                foregroundColor: WidgetStatePropertyAll(Colors.white),
-                backgroundColor: WidgetStatePropertyAll(Colors.grey),
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.grey,
               ),
               padding: const EdgeInsets.all(16),
               iconSize: 32.0,
-              onPressed: globalState.appController.addProfileFormQrCode,
+              onPressed: appController.addProfileFormQrCode,
               icon: const Icon(Icons.photo_camera_back),
             ),
           ),
@@ -165,10 +158,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 }
 
 class ScannerOverlay extends CustomPainter {
-  const ScannerOverlay({
-    required this.scanWindow,
-    this.borderRadius = 12.0,
-  });
+  const ScannerOverlay({required this.scanWindow, this.borderRadius = 12.0});
 
   final Rect scanWindow;
   final double borderRadius;
@@ -178,8 +168,8 @@ class ScannerOverlay extends CustomPainter {
     final backgroundPath = Path()..addRect(Rect.largest);
 
     final cutoutPath = Path()
-      ..addRRect(
-        RRect.fromRectAndCorners(
+      ..addRSuperellipse(
+        RSuperellipse.fromRectAndCorners(
           scanWindow,
           topLeft: Radius.circular(borderRadius),
           topRight: Radius.circular(borderRadius),
@@ -204,7 +194,7 @@ class ScannerOverlay extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0;
 
-    final borderRect = RRect.fromRectAndCorners(
+    final border = RSuperellipse.fromRectAndCorners(
       scanWindow,
       topLeft: Radius.circular(borderRadius),
       topRight: Radius.circular(borderRadius),
@@ -213,7 +203,7 @@ class ScannerOverlay extends CustomPainter {
     );
 
     canvas.drawPath(backgroundWithCutout, backgroundPaint);
-    canvas.drawRRect(borderRect, borderPaint);
+    canvas.drawRSuperellipse(border, borderPaint);
   }
 
   @override

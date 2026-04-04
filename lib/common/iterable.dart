@@ -1,5 +1,5 @@
-extension IterableExt<T> on Iterable<T> {
-  Iterable<T> separated(T separator) sync* {
+extension IterableExt<E> on Iterable<E> {
+  Iterable<E> separated(E separator) sync* {
     final iterator = this.iterator;
     if (!iterator.moveNext()) return;
 
@@ -11,7 +11,7 @@ extension IterableExt<T> on Iterable<T> {
     }
   }
 
-  Iterable<List<T>> chunks(int size) sync* {
+  Iterable<List<E>> chunks(int size) sync* {
     if (length == 0) return;
     var iterator = this.iterator;
     while (iterator.moveNext()) {
@@ -23,10 +23,7 @@ extension IterableExt<T> on Iterable<T> {
     }
   }
 
-  Iterable<T> fill(
-    int length, {
-    required T Function(int count) filler,
-  }) sync* {
+  Iterable<E> fill(int length, {required E Function(int count) filler}) sync* {
     int count = 0;
     for (var item in this) {
       yield item;
@@ -39,7 +36,7 @@ extension IterableExt<T> on Iterable<T> {
     }
   }
 
-  Iterable<T> takeLast({int count = 50}) {
+  Iterable<E> takeLast({int count = 50}) {
     if (count <= 0) return Iterable.empty();
     return count >= length ? this : toList().skip(length - count);
   }
@@ -47,7 +44,9 @@ extension IterableExt<T> on Iterable<T> {
 
 extension ListExt<T> on List<T> {
   void truncate(int maxLength) {
-    assert(maxLength > 0);
+    if (maxLength == 0) {
+      return;
+    }
     if (length > maxLength) {
       removeRange(0, length - maxLength);
     }
@@ -70,10 +69,45 @@ extension ListExt<T> on List<T> {
     return res;
   }
 
-  List<T> safeSublist(int start) {
+  List<T> safeSublist(int start, [int? end]) {
     if (start <= 0) return this;
     if (start > length) return [];
+    if (end != null) {
+      return sublist(start, end.clamp(start, length));
+    }
     return sublist(start);
+  }
+
+  T? safeGet(int index, {T? defaultValue}) {
+    if (index < 0 || index >= length) {
+      return defaultValue;
+    }
+    return this[index];
+  }
+
+  T safeLast(T defaultValue) {
+    if (isNotEmpty) {
+      return last;
+    }
+    return defaultValue;
+  }
+
+  void addOrRemove(T value) {
+    if (contains(value)) {
+      remove(value);
+    } else {
+      add(value);
+    }
+  }
+}
+
+extension SetExt<T> on Set<T> {
+  void addOrRemove(T value) {
+    if (contains(value)) {
+      remove(value);
+    } else {
+      add(value);
+    }
   }
 }
 
@@ -104,10 +138,20 @@ extension DoubleListExt on List<double> {
 }
 
 extension MapExt<K, V> on Map<K, V> {
-  updateCacheValue(K key, V Function() callback) {
+  V updateCacheValue(K key, V Function() callback) {
     if (this[key] == null) {
       this[key] = callback();
     }
-    return this[key];
+    return this[key]!;
+  }
+
+  Map<K, V> copyWitUpdate(K key, V? value) {
+    final newMap = Map<K, V>.from(this);
+    if (value == null) {
+      newMap.remove(key);
+    } else {
+      newMap[key] = value;
+    }
+    return newMap;
   }
 }

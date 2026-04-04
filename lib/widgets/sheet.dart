@@ -1,7 +1,5 @@
 import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
+import 'package:fl_clash/controller.dart';
 import 'package:flutter/material.dart';
 
 import 'scaffold.dart';
@@ -29,19 +27,17 @@ class ExtendProps {
   final double? maxWidth;
   final bool useSafeArea;
   final bool blur;
+  final bool forceFull;
 
   const ExtendProps({
     this.maxWidth,
     this.useSafeArea = true,
     this.blur = true,
+    this.forceFull = false,
   });
 }
 
-enum SheetType {
-  page,
-  bottomSheet,
-  sideSheet,
-}
+enum SheetType { page, bottomSheet, sideSheet }
 
 typedef SheetBuilder = Widget Function(BuildContext context, SheetType type);
 
@@ -50,31 +46,27 @@ Future<T?> showSheet<T>({
   required SheetBuilder builder,
   SheetProps props = const SheetProps(),
 }) {
-  final isMobile = globalState.appState.viewMode == ViewMode.mobile;
+  final isMobile = appController.isMobile;
   return switch (isMobile) {
     true => showModalBottomSheet<T>(
-        context: context,
-        isScrollControlled: props.isScrollControlled,
-        builder: (_) {
-          return SafeArea(
-            child: builder(context, SheetType.bottomSheet),
-          );
-        },
-        showDragHandle: false,
-        useSafeArea: props.useSafeArea,
-      ),
+      context: context,
+      isScrollControlled: props.isScrollControlled,
+      builder: (_) {
+        return builder(context, SheetType.bottomSheet);
+      },
+      showDragHandle: false,
+      useSafeArea: props.useSafeArea,
+    ),
     false => showModalSideSheet<T>(
-        useSafeArea: props.useSafeArea,
-        isScrollControlled: props.isScrollControlled,
-        context: context,
-        constraints: BoxConstraints(
-          maxWidth: props.maxWidth ?? 360,
-        ),
-        filter: props.blur ? commonFilter : null,
-        builder: (_) {
-          return builder(context, SheetType.sideSheet);
-        },
-      ),
+      useSafeArea: props.useSafeArea,
+      isScrollControlled: props.isScrollControlled,
+      context: context,
+      constraints: BoxConstraints(maxWidth: props.maxWidth ?? 360),
+      filter: props.blur ? commonFilter : null,
+      builder: (_) {
+        return builder(context, SheetType.sideSheet);
+      },
+    ),
   };
 }
 
@@ -83,23 +75,18 @@ Future<T?> showExtend<T>(
   required SheetBuilder builder,
   ExtendProps props = const ExtendProps(),
 }) {
-  final isMobile = globalState.appState.viewMode == ViewMode.mobile;
-  return switch (isMobile) {
-    true => BaseNavigator.push(
-        context,
-        builder(context, SheetType.page),
-      ),
+  final isMobile = appController.isMobile;
+  return switch (isMobile || props.forceFull) {
+    true => BaseNavigator.push(context, builder(context, SheetType.page)),
     false => showModalSideSheet<T>(
-        useSafeArea: props.useSafeArea,
-        context: context,
-        constraints: BoxConstraints(
-          maxWidth: props.maxWidth ?? 360,
-        ),
-        filter: props.blur ? commonFilter : null,
-        builder: (context) {
-          return builder(context, SheetType.sideSheet);
-        },
-      ),
+      useSafeArea: props.useSafeArea,
+      context: context,
+      constraints: BoxConstraints(maxWidth: props.maxWidth ?? 360),
+      filter: props.blur ? commonFilter : null,
+      builder: (context) {
+        return builder(context, SheetType.sideSheet);
+      },
+    ),
   };
 }
 
@@ -107,6 +94,7 @@ class AdaptiveSheetScaffold extends StatefulWidget {
   final SheetType type;
   final Widget body;
   final String title;
+  final bool? centerTitle;
   final List<Widget> actions;
 
   const AdaptiveSheetScaffold({
@@ -114,6 +102,7 @@ class AdaptiveSheetScaffold extends StatefulWidget {
     required this.type,
     required this.body,
     required this.title,
+    this.centerTitle,
     this.actions = const [],
   });
 
@@ -132,13 +121,12 @@ class _AdaptiveSheetScaffoldState extends State<AdaptiveSheetScaffold> {
       automaticallyImplyLeading: bottomSheet
           ? false
           : widget.actions.isEmpty && sideSheet
-              ? false
-              : true,
-      centerTitle: bottomSheet,
+          ? false
+          : true,
+      centerTitle:
+          widget.centerTitle ?? (bottomSheet && widget.actions.isEmpty),
       backgroundColor: backgroundColor,
-      title: Text(
-        widget.title,
-      ),
+      title: Text(widget.title),
       actions: genActions([
         if (widget.actions.isEmpty && sideSheet) CloseButton(),
         ...widget.actions,
@@ -146,38 +134,27 @@ class _AdaptiveSheetScaffoldState extends State<AdaptiveSheetScaffold> {
     );
     if (bottomSheet) {
       final handleSize = Size(32, 4);
-      return Container(
-        clipBehavior: Clip.hardEdge,
-        decoration: ShapeDecoration(
-          color: backgroundColor,
-          shape: RoundedSuperellipseBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28.0)),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: Container(
-                alignment: Alignment.center,
-                height: handleSize.height,
-                width: handleSize.width,
-                decoration: ShapeDecoration(
-                  shape: RoundedSuperellipseBorder(
-                    borderRadius: BorderRadius.circular(handleSize.height / 2),
-                  ),
-                  color: context.colorScheme.onSurfaceVariant,
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: 16),
+            child: Container(
+              alignment: Alignment.center,
+              height: handleSize.height,
+              width: handleSize.width,
+              decoration: ShapeDecoration(
+                color: context.colorScheme.onSurfaceVariant,
+                shape: RoundedSuperellipseBorder(
+                  borderRadius: BorderRadius.circular(handleSize.height / 2),
                 ),
               ),
             ),
-            appBar,
-            Flexible(
-              flex: 1,
-              child: widget.body,
-            )
-          ],
-        ),
+          ),
+          Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: appBar),
+          Flexible(flex: 1, child: widget.body),
+          SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
+        ],
       );
     }
     return CommonScaffold(

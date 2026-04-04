@@ -1,10 +1,9 @@
 package main
 
 import (
+	"cmp"
 	"context"
-	"core/state"
 	"encoding/json"
-	"fmt"
 	"github.com/metacubex/mihomo/adapter"
 	"github.com/metacubex/mihomo/adapter/outboundgroup"
 	"github.com/metacubex/mihomo/common/observable"
@@ -14,15 +13,18 @@ import (
 	"github.com/metacubex/mihomo/component/updater"
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/constant"
+	"github.com/metacubex/mihomo/constant/features"
 	cp "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/listener"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
 	"github.com/metacubex/mihomo/tunnel/statistic"
+	"golang.org/x/exp/slices"
 	"net"
+	"os"
 	"runtime"
-	"sort"
+	"runtime/debug"
 	"strconv"
 	"time"
 )
@@ -34,16 +36,16 @@ var (
 )
 
 func handleInitClash(paramsString string) bool {
+	runLock.Lock()
+	defer runLock.Unlock()
 	var params = InitParams{}
 	err := json.Unmarshal([]byte(paramsString), &params)
 	if err != nil {
 		return false
 	}
 	version = params.Version
-	if !isInit {
-		constant.SetHomeDir(params.HomeDir)
-		isInit = true
-	}
+	constant.SetHomeDir(params.HomeDir)
+	isInit = true
 	return isInit
 }
 
@@ -61,6 +63,7 @@ func handleStopListener() bool {
 	defer runLock.Unlock()
 	isRunning = false
 	listener.StopListener()
+	resolver.ResetConnection()
 	return true
 }
 
@@ -68,33 +71,77 @@ func handleGetIsInit() bool {
 	return isInit
 }
 
-func handleForceGc() {
-	go func() {
-		log.Infoln("[APP] request force GC")
-		runtime.GC()
-	}()
+func handleForceGC() {
+	log.Infoln("[APP] request force GC")
+	runtime.GC()
+	if features.Android {
+		debug.FreeOSMemory()
+	}
 }
 
 func handleShutdown() bool {
 	stopListeners()
 	executor.Shutdown()
-	runtime.GC()
+	handleForceGC()
 	isInit = false
 	return true
 }
 
-func handleValidateConfig(bytes []byte) string {
-	_, err := config.UnmarshalRawConfig(bytes)
+func handleValidateConfig(path string) string {
+	buf, err := readFile(path)
+	_, err = config.UnmarshalRawConfig(buf)
 	if err != nil {
 		return err.Error()
 	}
 	return ""
 }
 
-func handleGetProxies() map[string]constant.Proxy {
+func handleGetProxies() ProxiesData {
 	runLock.Lock()
 	defer runLock.Unlock()
-	return tunnel.ProxiesWithProviders()
+
+	nameList := config.GetProxyNameList()
+
+	proxies := make(map[string]constant.Proxy)
+
+	for name, proxy := range tunnel.Proxies() {
+		proxies[name] = proxy
+	}
+	for _, p := range tunnel.Providers() {
+		for _, proxy := range p.Proxies() {
+			proxies[proxy.Name()] = proxy
+		}
+	}
+
+	hasGlobal := false
+	allNames := make([]string, 0, len(nameList)+1)
+
+	for _, name := range nameList {
+		if name == "GLOBAL" {
+			hasGlobal = true
+		}
+
+		p, ok := proxies[name]
+		if !ok || p == nil {
+			continue
+		}
+		switch p.Type() {
+		case constant.Selector, constant.URLTest, constant.Fallback, constant.Relay, constant.LoadBalance:
+			allNames = append(allNames, name)
+		default:
+		}
+	}
+
+	if !hasGlobal {
+		if p, ok := proxies["GLOBAL"]; ok && p != nil {
+			allNames = append([]string{"GLOBAL"}, allNames...)
+		}
+	}
+
+	return ProxiesData{
+		All:     allNames,
+		Proxies: proxies,
+	}
 }
 
 func handleChangeProxy(data string, fn func(string string)) {
@@ -136,29 +183,29 @@ func handleChangeProxy(data string, fn func(string string)) {
 	}()
 }
 
-func handleGetTraffic() string {
-	up, down := statistic.DefaultManager.Current(state.CurrentState.OnlyStatisticsProxy)
+func handleGetTraffic(onlyStatisticsProxy bool) string {
+	up, down := statistic.DefaultManager.NowTraffic(onlyStatisticsProxy)
 	traffic := map[string]int64{
 		"up":   up,
 		"down": down,
 	}
 	data, err := json.Marshal(traffic)
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Errorln("Error: %s", err)
 		return ""
 	}
 	return string(data)
 }
 
-func handleGetTotalTraffic() string {
-	up, down := statistic.DefaultManager.Total(state.CurrentState.OnlyStatisticsProxy)
+func handleGetTotalTraffic(onlyStatisticsProxy bool) string {
+	up, down := statistic.DefaultManager.TotalTraffic(onlyStatisticsProxy)
 	traffic := map[string]int64{
 		"up":   up,
 		"down": down,
 	}
 	data, err := json.Marshal(traffic)
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Errorln("Error: %s", err)
 		return ""
 	}
 	return string(data)
@@ -228,7 +275,7 @@ func handleGetConnections() string {
 	snapshot := statistic.DefaultManager.Snapshot()
 	data, err := json.Marshal(snapshot)
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Errorln("Error: %s", err)
 		return ""
 	}
 	return string(data)
@@ -281,7 +328,9 @@ func handleGetExternalProviders() string {
 		}
 		eps = append(eps, *externalProvider)
 	}
-	sort.Sort(ExternalProviders(eps))
+	slices.SortFunc(eps, func(a, b ExternalProvider) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 	data, err := json.Marshal(eps)
 	if err != nil {
 		return ""
@@ -323,13 +372,13 @@ func handleUpdateGeoData(geoType string, geoName string, fn func(value string)) 
 				fn(err.Error())
 				return
 			}
-		case "GeoIp":
+		case "GEOIP":
 			err := updater.UpdateGeoIpWithPath(path)
 			if err != nil {
 				fn(err.Error())
 				return
 			}
-		case "GeoSite":
+		case "GEOSITE":
 			err := updater.UpdateGeoSiteWithPath(path)
 			if err != nil {
 				fn(err.Error())
@@ -372,6 +421,15 @@ func handleSideLoadExternalProvider(providerName string, data []byte, fn func(va
 		}
 		fn("")
 	}()
+}
+
+func handleSuspend(suspended bool) bool {
+	if suspended {
+		tunnel.OnSuspend()
+	} else {
+		tunnel.OnRunning()
+	}
+	return true
 }
 
 func handleStartLog() {
@@ -420,10 +478,6 @@ func handleGetMemory(fn func(value string)) {
 	}()
 }
 
-func handleSetState(params string) {
-	_ = json.Unmarshal([]byte(params), state.CurrentState)
-}
-
 func handleGetConfig(path string) (*config.RawConfig, error) {
 	bytes, err := readFile(path)
 	if err != nil {
@@ -450,15 +504,45 @@ func handleUpdateConfig(bytes []byte) string {
 	return ""
 }
 
+func handleDelFile(path string, result ActionResult) {
+	go func() {
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				result.success(err.Error())
+			}
+			result.success("")
+			return
+		}
+		if fileInfo.IsDir() {
+			err = os.RemoveAll(path)
+			if err != nil {
+				result.success(err.Error())
+				return
+			}
+		} else {
+			err = os.Remove(path)
+			if err != nil {
+				result.success(err.Error())
+				return
+			}
+		}
+		result.success("")
+	}()
+}
+
 func handleSetupConfig(bytes []byte) string {
+	if !isInit {
+		return "not initialized"
+	}
 	var params = defaultSetupParams()
 	err := UnmarshalJson(bytes, params)
 	if err != nil {
 		log.Errorln("unmarshalRawConfig error %v", err)
-		_ = setupConfig(defaultSetupParams())
+		_ = applyConfig(defaultSetupParams())
 		return err.Error()
 	}
-	err = setupConfig(params)
+	err = applyConfig(params)
 	if err != nil {
 		return err.Error()
 	}

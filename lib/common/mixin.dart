@@ -1,56 +1,43 @@
-import 'package:fl_clash/models/models.dart';
-import 'package:flutter/material.dart';
 import 'package:riverpod/riverpod.dart';
-import 'context.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-mixin AutoDisposeNotifierMixin<T> on AutoDisposeNotifier<T> {
+mixin AutoDisposeNotifierMixin<T> on AnyNotifier<T, T> {
+  T get value => state;
+
   set value(T value) {
     state = value;
   }
 
+  bool equals(T previous, T next) {
+    return false;
+  }
+
   @override
   bool updateShouldNotify(previous, next) {
-    final res = super.updateShouldNotify(previous, next);
+    final res = !equals(previous, next)
+        ? super.updateShouldNotify(previous, next)
+        : true;
     if (res) {
       onUpdate(next);
     }
     return res;
   }
 
-  onUpdate(T value) {}
+  void onUpdate(T value) {}
+
+  void update(T? Function(T) builder) {
+    final res = builder(value);
+    if (res == null) {
+      return;
+    }
+    value = res;
+  }
 }
 
-mixin PageMixin<T extends StatefulWidget> on State<T> {
-  void onPageShow() {
-    initPageState();
+mixin AsyncNotifierMixin<T> on AnyNotifier<AsyncValue<T>, T> {
+  T get value;
+
+  set value(T value) {
+    state = AsyncData(value);
   }
-
-  initPageState() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final commonScaffoldState = context.commonScaffoldState;
-      commonScaffoldState?.actions = actions;
-      commonScaffoldState?.floatingActionButton = floatingActionButton;
-      commonScaffoldState?.onKeywordsUpdate = onKeywordsUpdate;
-      commonScaffoldState?.leading = leading;
-      commonScaffoldState?.updateSearchState(
-        (_) => onSearch != null
-            ? AppBarSearchState(
-                onSearch: onSearch!,
-              )
-            : null,
-      );
-    });
-  }
-
-  void onPageHidden() {}
-
-  List<Widget> get actions => [];
-
-  Widget? get floatingActionButton => null;
-
-  Widget? get leading => null;
-
-  Function(String)? get onSearch => null;
-
-  Function(List<String>)? get onKeywordsUpdate => null;
 }

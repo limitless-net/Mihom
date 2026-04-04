@@ -1,223 +1,127 @@
-<div align="center">
+<div>
 
-# Orange
-
-[![许可证](https://img.shields.io/github/license/chen08209/FlClash?style=flat-square)](LICENSE)
-[![Telegram群组](https://img.shields.io/badge/Telegram-加入群组-blue?style=flat-square&logo=telegram)](https://t.me/V2Hiidify)
-
-**基于 FlClash v0.8.85 的多平台代理客户端，深度集成全新 XBoard 面板支持**
-
-[English](README.md) | [简体中文](README_zh_CN.md)
+[**简体中文**](README_zh_CN.md)
 
 </div>
 
----
+## FlClash
 
-<div align="center">
+[![Downloads](https://img.shields.io/github/downloads/chen08209/FlClash/total?style=flat-square&logo=github)](https://github.com/chen08209/FlClash/releases/)[![Last Version](https://img.shields.io/github/release/chen08209/FlClash/all.svg?style=flat-square)](https://github.com/chen08209/FlClash/releases/)[![License](https://img.shields.io/github/license/chen08209/FlClash?style=flat-square)](LICENSE)
 
----
-📢 **广告位** 📢
+[![Channel](https://img.shields.io/badge/Telegram-Channel-blue?style=flat-square&logo=telegram)](https://t.me/FlClash)
 
-**感谢 MotionPay 对本项目的支持，以下是他们提供的内容**
----
+A multi-platform proxy client based on ClashMeta, simple and easy to use, open-source and ad-free.
 
-## 💳 MotionPay - 专业支付解决方案
+on Desktop:
+<p style="text-align: center;">
+    <img alt="desktop" src="snapshots/desktop.gif">
+</p>
 
-**MotionPay** - 低费率·稳定可靠·快速结算
+on Mobile:
+<p style="text-align: center;">
+    <img alt="mobile" src="snapshots/mobile.gif">
+</p>
 
-📋 [服务详情](https://t.me/Motionzf/206) | 💬 [业务咨询](https://t.me/MotionIDC) | 🤖 [客服支持](https://t.me/MotionPaySupportBot)
+## Features
 
----
+✈️ Multi-platform: Android, Windows, macOS and Linux
 
-</div>
+💻 Adaptive multiple screen sizes, Multiple color themes available
 
----
+💡 Based on Material You Design, [Surfboard](https://github.com/getsurfboard/surfboard)-like UI
 
-## 📖 项目简介
+☁️ Supports data sync via WebDAV
 
-Orange 是基于 [FlClash v0.8.85](https://github.com/chen08209/FlClash) 的增强版本，深度集成了 **XBoard v20250905-b144770** 面板支持。本项目采用模块化设计理念，将所有 XBoard 相关功能封装在独立的 `lib/xboard` 模块中，最大限度减少与上游 FlClash 的代码冲突，便于后续跟进上游更新。
+✨ Support subscription link, Dark mode
 
-### 🎯 核心设计理念
+## Use
 
-- **FlClash 作为 Core**：将原版 FlClash 视为核心依赖，所有定制功能均在独立模块中实现
-- **最小侵入式改动**：涉及原生 UI 修改时（如订阅组件），采用复制原实现并独立维护的方式
-- **SDK 化设计**：XBoard SDK 独立于 FlClash，可方便嵌入其他 Flutter 项目使用
-- **更新友好**：最大限度减少 `git pull` 上游更新时的合并冲突问题
+### Linux
 
----
+⚠️ Make sure to install the following dependencies before using them
 
-## ✨ 核心特性
+   ```bash
+    sudo apt-get install libayatana-appindicator3-dev
+    sudo apt-get install libkeybinder-3.0-dev
+   ```
 
-### 🛡️ 入口域名防封锁机制
-- 多域名竞速策略
-- 国内中转服务器支持
-- 数据混淆与加密传输
-- UA 对等密钥验证
+### Android
 
-### 🚀 高可用性保障
-- 域名竞速自动选择最快节点
-- 多源配置自动降级
-- 缓存机制提升响应速度
-- 自动容灾切换
+Support the following actions
 
-### 🔐 安全与加密
-- TLS 证书验证
-- 订阅数据加密
-- API 响应混淆
-- 私有证书支持
+   ```bash
+    com.follow.clash.action.START
+    
+    com.follow.clash.action.STOP
+    
+    com.follow.clash.action.TOGGLE
+   ```
 
-### 🌐 配置文件托管
-- GitHub/Gitee 多源配置
-- 客户端加密解密
-- CDN 加速支持
-- 灵活的降级策略
+## Download
 
-### 📡 扩展功能
-- 在线客服系统集成
-- 设备上报与远程任务
-- 自动更新检查
-- WebSocket 实时通信
+<a href="https://chen08209.github.io/FlClash-fdroid-repo/repo?fingerprint=789D6D32668712EF7672F9E58DEEB15FBD6DCEEC5AE7A4371EA72F2AAE8A12FD"><img alt="Get it on F-Droid" src="snapshots/get-it-on-fdroid.svg" width="200px"/></a> <a href="https://github.com/chen08209/FlClash/releases"><img alt="Get it on GitHub" src="snapshots/get-it-on-github.svg" width="200px"/></a>
 
-> 📚 **详细说明**：查看 [核心特性文档](docs/features.md)
+## Build
 
----
+1. Update submodules
+   ```bash
+   git submodule update --init --recursive
+   ```
 
-## 🚀 快速开始
+2. Install `Flutter` and `Golang` environment
 
-> 📖 **配置教程**：[最小可用性配置指南](docs/quick-start.md) | [配置示例](docs/examples/minimal.md)
+3. Build Application
 
-### 1. 构建应用
+    - android
 
-> 🛠️ **详细步骤**：[构建指南](docs/build-guide.md)
+        1. Install  `Android SDK` ,  `Android NDK`
 
-### 2. 配置应用
+        2. Set `ANDROID_NDK` environment variables
 
-详细配置步骤请查看文档：
+        3. Run Build script
 
-> ⚙️ **配置指南**：[快速开始](docs/quick-start.md) | [配置文档](docs/configuration.md) | [配置示例](docs/examples/minimal.md)
+           ```bash
+           dart .\setup.dart android
+           ```
 
----
+    - windows
 
-## 📚 文档导航
+        1. You need a windows client
 
-| 文档 | 说明 |
-|------|------|
-| [快速开始](docs/quick-start.md) | 5分钟最小可用性配置教程 |
-| [构建指南](docs/build-guide.md) | 完整的构建和运行环境配置 |
-| [配置文档](docs/configuration.md) | 完整的配置说明和示例 |
-| [核心特性](docs/features.md) | 详细的功能说明和使用方法 |
-| [服务端部署](docs/server-deployment.md) | XBoard 面板和 Caddy 反代配置 |
-| [安全配置](docs/security.md) | 证书、加密、混淆等安全配置 |
-| [文档中心](docs/README.md) | 所有文档的索引和导航 |
+        2. Install  `Gcc`，`Inno Setup`
 
----
+        3. Run build script
 
-## 📸 应用截图
+           ```bash
+           dart .\setup.dart windows --arch <arm64 | amd64>
+           ```
 
-<div align="center">
+    - linux
 
-<img src="images/homepage.jpg" width="160" alt="主页"/> <img src="images/plans.jpg" width="160" alt="套餐计划"/> <img src="images/purchase.jpg" width="160" alt="购买页面"/> <img src="images/invitepage.jpg" width="160" alt="邀请页面"/> <img src="images/notice.jpg" width="160" alt="通知公告"/>
+        1. You need a linux client
 
-<details>
-<summary>📱 点击查看大图预览</summary>
+        2. Run build script
 
-<br/>
+           ```bash
+           dart .\setup.dart linux --arch <arm64 | amd64>
+           ```
 
-**主页界面**
-![主页](images/homepage.jpg)
+    - macOS
 
----
+        1. You need a macOS client
 
-**套餐计划**
-![套餐计划](images/plans.jpg)
+        2. Run build script
 
----
+           ```bash
+           dart .\setup.dart macos --arch <arm64 | amd64>
+           ```
 
-**购买页面**
-![购买](images/purchase.jpg)
+## Star
 
----
+The easiest way to support developers is to click on the star (⭐) at the top of the page.
 
-**邀请页面**
-![邀请](images/invitepage.jpg)
-
----
-
-**通知公告**
-![通知](images/notice.jpg)
-
-</details>
-
-</div>
-
----
-
-## 📱 平台支持
-
-| 平台 | 状态 | 备注 |
-|-----|------|------|
-| Android | ✅ 支持 | 推荐 Android 7.0+ |
-| Windows | ✅ 支持 | Windows 10+ |
-| macOS | ✅ 支持 | macOS 10.14+ |
-| Linux | ✅ 支持 | 需安装依赖 |
-| iOS | ⏳ 规划中 | 待适配 |
-
----
-
-## ⚠️ 免责声明
-
-1. **开源声明**：
-   - 本项目基于开源协议发布
-   - 核心代码来自 FlClash 和 Clash Meta
-   - XBoard 模块为独立开发
-
-2. **使用风险**：
-   - 本软件仅供学习和研究使用
-   - 使用前请充分评估隐私和安全风险
-   - 用户需自行承担使用本软件的风险
-
-3. **安全警告**：
-   - 关闭证书验证将导致严重安全风险
-   - 仅在可信的测试环境中使用
-   - 生产环境必须启用 HTTPS 证书验证
-
-4. **效果声明**：
-   - 数据混淆功能的有效性未经权威验证
-   - 不保证能够完全防止检测和封锁
-   - 请根据实际需求谨慎使用
-
----
-
-## 🤝 贡献与支持
-
-### 上游项目
-
-- [FlClash](https://github.com/chen08209/FlClash) - 多平台 Clash 客户端
-- [Clash Meta](https://github.com/MetaCubeX/Clash.Meta) - Clash 内核
-
-### 问题反馈
-
-如果您在使用过程中遇到问题或有改进建议：
-- 提交 [Issue](https://github.com/hakimi-x/Xboard-Mihomo/issues)
-- 加入 [Telegram 群组](https://t.me/V2Hiidify)
-
-### Star 支持
-
-如果这个项目对您有帮助，欢迎给个 ⭐ Star！
-
-### 💰 打赏支持
-
-如果您觉得这个项目对您有帮助，可以请作者喝杯咖啡 ☕
-
-| 币种 | 地址 |
-|------|------|
-| **TRC-USDT** | `TFPvpxb5k2mYYcvABe5BrCz7Tt6BhnZxxj` |
-| **POL-USDT** | `0xFbbfD2b98fB3F7a4084275ad3139ba179bFDFa0F` |
-
----
-
-<div align="center">
-
-**© 2025 Orange. All Rights Reserved.**
-
-</div>
+<p style="text-align: center;">
+    <a href="https://api.star-history.com/svg?repos=chen08209/FlClash&Date">
+        <img alt="start" width=50% src="https://api.star-history.com/svg?repos=chen08209/FlClash&Date"/>
+    </a>
+</p>

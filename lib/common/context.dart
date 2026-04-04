@@ -1,4 +1,6 @@
-import 'package:fl_clash/manager/message_manager.dart';
+import 'package:fl_clash/l10n/l10n.dart';
+import 'package:fl_clash/manager/manager.dart';
+import 'package:fl_clash/models/state.dart';
 import 'package:fl_clash/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 
@@ -7,28 +9,20 @@ extension BuildContextExtension on BuildContext {
     return findAncestorStateOfType<CommonScaffoldState>();
   }
 
-  showNotifier(String text, {VoidCallback? onTap}) {
-    return findAncestorStateOfType<MessageManagerState>()?.message(text, onTap: onTap);
+  void showNotifier(String text, {MessageActionState? actionState}) {
+    return findAncestorStateOfType<StatusManagerState>()?.message(
+      text,
+      actionState: actionState,
+    );
   }
 
-  showSnackBar(
-    String message, {
-    SnackBarAction? action,
-  }) {
+  void showSnackBar(String message, {SnackBarAction? action}) {
     final width = viewWidth;
     EdgeInsets margin;
     if (width < 600) {
-      margin = const EdgeInsets.only(
-        bottom: 16,
-        right: 16,
-        left: 16,
-      );
+      margin = const EdgeInsets.only(bottom: 16, right: 16, left: 16);
     } else {
-      margin = EdgeInsets.only(
-        bottom: 16,
-        left: 16,
-        right: width - 316,
-      );
+      margin = EdgeInsets.only(bottom: 16, left: 16, right: width - 316);
     }
     ScaffoldMessenger.of(this).showSnackBar(
       SnackBar(
@@ -53,6 +47,8 @@ extension BuildContextExtension on BuildContext {
 
   TextTheme get textTheme => Theme.of(this).textTheme;
 
+  AppLocalizations get appLocalizations => AppLocalizations.of(this);
+
   T? findLastStateOfType<T extends State>() {
     T? state;
 
@@ -70,5 +66,23 @@ extension BuildContextExtension on BuildContext {
 
     visitor(this as Element);
     return state;
+  }
+}
+
+class BackHandleInherited extends InheritedWidget {
+  final Function handleBack;
+
+  const BackHandleInherited({
+    super.key,
+    required this.handleBack,
+    required super.child,
+  });
+
+  static BackHandleInherited? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<BackHandleInherited>();
+
+  @override
+  bool updateShouldNotify(BackHandleInherited oldWidget) {
+    return handleBack != oldWidget.handleBack;
   }
 }

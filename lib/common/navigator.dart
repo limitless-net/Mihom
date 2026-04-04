@@ -1,48 +1,45 @@
+import 'package:animations/animations.dart';
 import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/dialog.dart';
+import 'package:fl_clash/controller.dart';
 import 'package:flutter/material.dart';
 
 class BaseNavigator {
   static Future<T?> push<T>(BuildContext context, Widget child) async {
-    if (globalState.appState.viewMode != ViewMode.mobile) {
-      return await Navigator.of(context).push<T>(
-        CommonDesktopRoute(
-          builder: (context) => child,
-        ),
-      );
+    if (!appController.isMobile) {
+      return await Navigator.of(
+        context,
+      ).push<T>(CommonDesktopRoute(builder: (context) => child));
     }
-    return await Navigator.of(context).push<T>(
-      CommonRoute(
-        builder: (context) => child,
-      ),
-    );
+    return await Navigator.of(
+      context,
+    ).push<T>(CommonRoute(builder: (context) => child));
   }
 
-  static Future<T?> modal<T>(BuildContext context, Widget child) async {
-    if (globalState.appState.viewMode != ViewMode.mobile) {
-      return await globalState.showCommonDialog<T>(
-        child: CommonModal(
-          child: child,
-        ),
-      );
-    }
-    return await Navigator.of(context).push<T>(
-      CommonRoute(
-        builder: (context) => child,
-      ),
-    );
-  }
+  // static Future<T?> modal<T>(BuildContext context, Widget child) async {
+  //   if (globalState.appState.viewMode != ViewMode.mobile) {
+  //     return await globalState.showCommonDialog<T>(
+  //       child: CommonModal(
+  //         child: child,
+  //       ),
+  //     );
+  //   }
+  //   return await Navigator.of(context).push<T>(
+  //     CommonRoute(
+  //       builder: (context) => child,
+  //     ),
+  //   );
+  // }
 }
+
+const commonSharedXPageTransitions = SharedAxisPageTransitionsBuilder(
+  transitionType: SharedAxisTransitionType.horizontal,
+  fillColor: Colors.transparent,
+);
 
 class CommonDesktopRoute<T> extends PageRoute<T> {
   final Widget Function(BuildContext context) builder;
 
-  CommonDesktopRoute({
-    required this.builder,
-  });
+  CommonDesktopRoute({required this.builder});
 
   @override
   Color? get barrierColor => null;
@@ -60,10 +57,7 @@ class CommonDesktopRoute<T> extends PageRoute<T> {
     return Semantics(
       scopesRoute: true,
       explicitChildNodes: true,
-      child: FadeTransition(
-        opacity: animation,
-        child: result,
-      ),
+      child: FadeTransition(opacity: animation, child: result),
     );
   }
 
@@ -77,16 +71,45 @@ class CommonDesktopRoute<T> extends PageRoute<T> {
   Duration get reverseTransitionDuration => Duration(milliseconds: 200);
 }
 
-class CommonRoute<T> extends MaterialPageRoute<T> {
-  CommonRoute({
-    required super.builder,
-  });
+class CommonRoute<T> extends PageRoute<T> {
+  final Widget Function(BuildContext context) builder;
+
+  CommonRoute({required this.builder});
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 500);
+  Color? get barrierColor => null;
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 500);
+  String? get barrierLabel => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    final Widget result = builder(context);
+    return Semantics(
+      scopesRoute: true,
+      explicitChildNodes: true,
+      child: SharedAxisTransition(
+        animation: animation,
+        secondaryAnimation: secondaryAnimation,
+        transitionType: SharedAxisTransitionType.horizontal,
+        fillColor: context.colorScheme.surface,
+        child: result,
+      ),
+    );
+  }
+
+  @override
+  Duration get transitionDuration => Duration(milliseconds: 300);
+
+  @override
+  Duration get reverseTransitionDuration => Duration(milliseconds: 300);
 }
 
 final Animatable<Offset> _kRightMiddleTween = Tween<Offset>(
@@ -140,16 +163,21 @@ class CommonPageTransition extends StatefulWidget {
   final bool linearTransition;
 
   static Widget? delegatedTransition(
-      BuildContext context,
-      Animation<double> animation,
-      Animation<double> secondaryAnimation,
-      bool allowSnapshotting,
-      Widget? child) {
-    final Animation<Offset> delegatedPositionAnimation = CurvedAnimation(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    bool allowSnapshotting,
+    Widget? child,
+  ) {
+    final CurvedAnimation animation = CurvedAnimation(
       parent: secondaryAnimation,
       curve: Curves.linearToEaseOut,
       reverseCurve: Curves.easeInToLinear,
-    ).drive(_kMiddleLeftTween);
+    );
+    final Animation<Offset> delegatedPositionAnimation = animation.drive(
+      _kMiddleLeftTween,
+    );
+    animation.dispose();
 
     assert(debugCheckHasDirectionality(context));
     final TextDirection textDirection = Directionality.of(context);
@@ -223,23 +251,23 @@ class _CommonPageTransitionState extends State<CommonPageTransition> {
       );
     }
     _primaryPositionAnimation =
-        (_primaryPositionCurve ?? widget.primaryRouteAnimation)
-            .drive(_kRightMiddleTween);
+        (_primaryPositionCurve ?? widget.primaryRouteAnimation).drive(
+          _kRightMiddleTween,
+        );
     _secondaryPositionAnimation =
-        (_secondaryPositionCurve ?? widget.secondaryRouteAnimation)
-            .drive(_kMiddleLeftTween);
+        (_secondaryPositionCurve ?? widget.secondaryRouteAnimation).drive(
+          _kMiddleLeftTween,
+        );
     _primaryShadowAnimation =
         (_primaryShadowCurve ?? widget.primaryRouteAnimation).drive(
-      DecorationTween(
-        begin: const _CommonEdgeShadowDecoration(),
-        end: _CommonEdgeShadowDecoration(
-          <Color>[
-            widget.context.colorScheme.inverseSurface.withValues(alpha: 0.02),
-            Colors.transparent,
-          ],
-        ),
-      ),
-    );
+          DecorationTween(
+            begin: const _CommonEdgeShadowDecoration(),
+            end: _CommonEdgeShadowDecoration(<Color>[
+              Color(0x04000000),
+              Colors.transparent,
+            ]),
+          ),
+        );
   }
 
   @override
@@ -274,10 +302,8 @@ class _CommonEdgeShadowDecoration extends Decoration {
 }
 
 class _CommonEdgeShadowPainter extends BoxPainter {
-  _CommonEdgeShadowPainter(
-    this._decoration,
-    super.onChanged,
-  ) : assert(_decoration._colors == null || _decoration._colors!.length > 1);
+  _CommonEdgeShadowPainter(this._decoration, super.onChanged)
+    : assert(_decoration._colors == null || _decoration._colors.length > 1);
 
   final _CommonEdgeShadowDecoration _decoration;
 
@@ -288,7 +314,7 @@ class _CommonEdgeShadowPainter extends BoxPainter {
       return;
     }
 
-    final double shadowWidth = 1 * configuration.size!.width;
+    final double shadowWidth = 0.05 * configuration.size!.width;
     final double shadowHeight = configuration.size!.height;
     final double bandWidth = shadowWidth / (colors.length - 1);
 
@@ -305,11 +331,16 @@ class _CommonEdgeShadowPainter extends BoxPainter {
         bandColorIndex += 1;
       }
       final Paint paint = Paint()
-        ..color = Color.lerp(colors[bandColorIndex], colors[bandColorIndex + 1],
-            (dx % bandWidth) / bandWidth)!;
+        ..color = Color.lerp(
+          colors[bandColorIndex],
+          colors[bandColorIndex + 1],
+          (dx % bandWidth) / bandWidth,
+        )!;
       final double x = start + shadowDirection * dx;
       canvas.drawRect(
-          Rect.fromLTWH(x - 1.0, offset.dy, 1.0, shadowHeight), paint);
+        Rect.fromLTWH(x - 1.0, offset.dy, 1.0, shadowHeight),
+        paint,
+      );
     }
   }
 }
