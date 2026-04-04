@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:fl_clash/clash/core.dart';
+import 'dart:typed_data';
+import 'package:fl_clash/core/controller.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/xboard/config/xboard_config.dart';
 import 'package:fl_clash/xboard/core/core.dart';
@@ -91,7 +92,7 @@ class SubscriptionDownloader {
       
       // 验证配置
       _logger.info('验证订阅配置...');
-      final validationMessage = await clashCore.validateConfig(result.content);
+      final validationMessage = await coreController.validateConfigWithData(result.content);
       if (validationMessage.isNotEmpty) {
         throw Exception('配置验证失败: $validationMessage');
       }
@@ -99,11 +100,11 @@ class SubscriptionDownloader {
       
       // 创建并保存 Profile
       final profile = Profile.normal(url: url);
-      final savedProfile = await profile.saveFileWithString(result.content);
+      final savedProfile = await profile.saveFile(Uint8List.fromList(utf8.encode(result.content)));
       
       // 更新订阅信息
       final finalProfile = savedProfile.copyWith(
-        label: result.label ?? savedProfile.id,
+        label: result.label ?? savedProfile.id.toString(),
         subscriptionInfo: result.subscriptionInfo,
         lastUpdateDate: DateTime.now(),
       );

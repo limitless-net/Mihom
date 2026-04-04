@@ -13,9 +13,13 @@ import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'controller.dart';
-import 'pages/pages.dart';
+import 'xboard/xboard.dart';
+import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart';
+import 'package:fl_clash/xboard/router/app_router.dart' as xboard_router;
+import 'package:fl_clash/xboard/features/initialization/initialization.dart';
 
 class Application extends ConsumerStatefulWidget {
   const Application({super.key});
@@ -47,6 +51,16 @@ class ApplicationState extends ConsumerState<Application> {
   @override
   void initState() {
     super.initState();
+
+    // XBoard: 后台预热初始化服务（不阻塞 UI）
+    Future.microtask(() async {
+      try {
+        await ref.read(initializationProvider.notifier).initialize();
+      } catch (e) {
+        debugPrint('[Application] 预热初始化失败: $e');
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final currentContext = globalState.navigatorKey.currentContext;
       if (currentContext != null) {
@@ -57,6 +71,59 @@ class ApplicationState extends ConsumerState<Application> {
       _autoUpdateProfilesTask();
       appController.initLink();
       app?.initShortcuts();
+
+      // XBoard: 快速认证和更新检查
+      _performQuickAuthWithDomainService();
+      _checkForUpdates();
+    });
+  }
+
+  /// XBoard: 使用域名服务进行快速认证检查
+  void _performQuickAuthWithDomainService() {
+    Future.microtask(() async {
+      try {
+        final initState = ref.read(initializationProvider);
+        if (!initState.isReady) {
+          final deadline = DateTime.now().add(const Duration(seconds: 30));
+          while (!ref.read(initializationProvider).isReady &&
+              DateTime.now().isBefore(deadline)) {
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+          if (!ref.read(initializationProvider).isReady) return;
+        }
+
+        final userNotifier = ref.read(xboardUserProvider.notifier);
+        await userNotifier.quickAuth();
+
+        if (mounted) setState(() {});
+      } catch (e) {
+        debugPrint('[Application] 快速认证检查失败: $e');
+        if (mounted) setState(() {});
+      }
+    });
+  }
+
+  /// XBoard: 检查应用更新
+  void _checkForUpdates() {
+    Future.delayed(const Duration(seconds: 5), () async {
+      try {
+        final updateNotifier = ref.read(updateCheckProvider.notifier);
+        await updateNotifier.checkForUpdates();
+
+        final updateState = ref.read(updateCheckProvider);
+        if (updateState.hasUpdate && mounted) {
+          final currentContext = globalState.navigatorKey.currentContext;
+          if (currentContext != null) {
+            showDialog(
+              context: currentContext,
+              barrierDismissible: !updateState.forceUpdate,
+              builder: (context) => UpdateDialog(state: updateState),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('[Application] 自动更新检查异常: $e');
+      }
     });
   }
 
@@ -112,13 +179,17 @@ class ApplicationState extends ConsumerState<Application> {
   Widget build(context) {
     return Consumer(
       builder: (_, ref, child) {
+        // XBoard: WebSocket 自动连接器
+        ref.watch(webSocketAutoConnectorProvider);
+
         final locale = ref.watch(
           appSettingProvider.select((state) => state.locale),
         );
         final themeProps = ref.watch(themeSettingProvider);
-        return MaterialApp(
+        final userState = ref.watch(xboardUserProvider);
+
+        return MaterialApp.router(
           debugShowCheckedModeBanner: false,
-          navigatorKey: globalState.navigatorKey,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -134,6 +205,7 @@ class ApplicationState extends ConsumerState<Application> {
               ),
             );
           },
+          routerConfig: _buildRouter(userState),
           scrollBehavior: BaseScrollBehavior(),
           title: appName,
           locale: utils.getLocaleForString(locale),
@@ -155,10 +227,28 @@ class ApplicationState extends ConsumerState<Application> {
               primaryColor: themeProps.primaryColor,
             ).toPureBlack(themeProps.pureBlack),
           ),
-          home: child!,
         );
       },
-      child: const HomePage(),
+    );
+  }
+
+  // XBoard: 构建带认证重定向的路由器
+  GoRouter _buildRouter(UserAuthState userState) {
+    return GoRouter(
+      navigatorKey: globalState.navigatorKey,
+      initialLocation: '/',
+      routes: xboard_router.routes,
+      redirect: (context, state) {
+        final isAuthenticated = userState.isAuthenticated;
+        final isInitialized = userState.isInitialized;
+        final isLoginPage = state.uri.path == '/login';
+
+        if (!isInitialized) return '/loading';
+        if (!isAuthenticated && !isLoginPage) return '/login';
+        if (isAuthenticated && isLoginPage) return '/';
+
+        return null;
+      },
     );
   }
 

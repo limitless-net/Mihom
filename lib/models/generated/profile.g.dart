@@ -26,7 +26,7 @@ _Profile _$ProfileFromJson(Map<String, dynamic> json) => _Profile(
   id: (json['id'] as num).toInt(),
   label: json['label'] as String? ?? '',
   currentGroupName: json['currentGroupName'] as String?,
-  url: json['url'] as String? ?? '',
+  url: json['url'] as String? ?? "",
   lastUpdateDate: json['lastUpdateDate'] == null
       ? null
       : DateTime.parse(json['lastUpdateDate'] as String),

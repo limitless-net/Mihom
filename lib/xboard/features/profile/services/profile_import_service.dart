@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_clash/controller.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/state.dart';
+import 'package:fl_clash/providers/database.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/xboard/features/profile/profile.dart';
 import 'package:fl_clash/xboard/features/subscription/services/encrypted_subscription_service.dart';
@@ -104,13 +108,13 @@ class XBoardProfileImportService {
   }
   Future<void> _cleanOldUrlProfiles() async {
     try {
-      final profiles = globalState.config.profiles;
+      final profiles = _ref.read(profilesProvider);
       final urlProfiles = profiles.where((profile) => profile.type == ProfileType.url).toList();
       
       for (final profile in urlProfiles) {
         _logger.debug('删除旧的URL配置: ${profile.label ?? profile.id}');
-        _ref.read(profilesProvider.notifier).deleteProfileById(profile.id);
-        _clearProfileEffect(profile.id);
+        _ref.read(profilesProvider.notifier).del(profile.id);
+        _clearProfileEffect(profile.id.toString());
       }
       
       _logger.info('清理了 ${urlProfiles.length} 个旧的URL配置');
@@ -243,7 +247,7 @@ class XBoardProfileImportService {
       // 创建Profile并保存解密的配置内容
       _logger.debug('💾 开始保存解密的配置内容到Profile...');
       final profile = Profile.normal(url: url);
-      final profileWithContent = await profile.saveFileWithString(result.content!);
+      final profileWithContent = await profile.saveFile(Uint8List.fromList(utf8.encode(result.content!)));
       _logger.info('✅ 配置内容已成功保存并通过ClashMeta核心验证');
       
       // 获取订阅信息并更新Profile
@@ -272,7 +276,7 @@ class XBoardProfileImportService {
   Future<void> _addProfile(Profile profile) async {
     try {
       // 1. 添加配置到列表
-      _ref.read(profilesProvider.notifier).setProfile(profile);
+      _ref.read(profilesProvider.notifier).put(profile);
       
       // 2. 强制设置为当前配置（订阅导入是用户主动操作，应该立即生效）
       final currentProfileIdNotifier = _ref.read(currentProfileIdProvider.notifier);
@@ -284,7 +288,7 @@ class XBoardProfileImportService {
       // 未 mounted 会失败，所以我们在这里手动用 silence 模式触发
       _logger.info('📋 使用 silence 模式应用配置...');
       try {
-        await globalState.appController.applyProfile(silence: true);
+        await appController.applyProfile(silence: true);
         _logger.info('✅ 配置应用成功');
       } catch (e) {
         _logger.error('❌ 配置应用失败', e);
@@ -298,15 +302,15 @@ class XBoardProfileImportService {
   }
   void _clearProfileEffect(String profileId) {
     try {
-      if (globalState.config.currentProfileId == profileId) {
-        final profiles = globalState.config.profiles;
+      if (appController.config.currentProfileId?.toString() == profileId) {
+        final profiles = _ref.read(profilesProvider);
         final currentProfileIdNotifier = _ref.read(currentProfileIdProvider.notifier);
         if (profiles.isNotEmpty) {
           final updateId = profiles.first.id;
           currentProfileIdNotifier.value = updateId;
         } else {
           currentProfileIdNotifier.value = null;
-          globalState.appController.updateStatus(false);
+          appController.updateStatus(false);
         }
       }
     } catch (e) {

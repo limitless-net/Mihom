@@ -60,7 +60,7 @@ class LanguageSelector extends ConsumerWidget {
       ),
       tooltip: '切换语言 / Switch Language',
       onSelected: (String languageCode) {
-        ref.read(appSettingProvider.notifier).updateState(
+        ref.read(appSettingProvider.notifier).update(
           (state) => state.copyWith(locale: languageCode),
         );
       },

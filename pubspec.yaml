@@ -66,6 +66,20 @@ dependencies:
       ref: master
   super_sliver_list: ^0.4.1
 
+  # XBoard dependencies
+  go_router: ^14.6.2
+  encrypt: ^5.0.1
+  pointycastle: ^3.9.1
+  http: ^1.1.0
+  flutter_markdown: ^0.7.4+1
+  flutter_widget_from_html: ^0.17.1
+  uuid: ^4.4.0
+  web_socket_channel: ^3.0.3
+  qr_flutter: ^4.1.0
+  socks5_proxy: ^2.1.1
+  flutter_xboard_sdk:
+    path: lib/sdk/flutter_xboard_sdk
+
   drift: ^2.29.0
   drift_flutter: ^0.2.7
   fractional_indexing: ^1.0.0
@@ -91,6 +105,8 @@ flutter:
     - assets/images/avatar/
     - assets/images/empty/
     - assets/images/icon/
+    - assets/cer/
+    - assets/config/
   fonts:
     - family: JetBrainsMono
       fonts:

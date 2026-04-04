@@ -1,4 +1,4 @@
-import 'package:fl_clash/clash/clash.dart';
+import 'package:fl_clash/core/controller.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_clash/xboard/xboard.dart';
@@ -17,7 +17,7 @@ class LatencyService {
     final List<Future> tasks = [];
     for (final node in nodes) {
       tasks.add(
-        clashCore.getDelay(testUrl, node.name).then((delay) {
+        coreController.getDelay(testUrl, node.name).then((delay) {
           latencies[node.name] = delay.value ?? -1;
         }).catchError((_) {
           latencies[node.name] = -1;

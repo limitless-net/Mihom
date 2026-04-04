@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/providers/providers.dart';
@@ -27,7 +27,7 @@ class ThemeDialog extends ConsumerWidget {
             groupValue: currentThemeMode,
             onChanged: (value) {
               if (value != null) {
-                ref.read(themeSettingProvider.notifier).updateState(
+                ref.read(themeSettingProvider.notifier).update(
                   (state) => state.copyWith(themeMode: value),
                 );
                 Navigator.of(context).pop();
@@ -46,7 +46,7 @@ class ThemeDialog extends ConsumerWidget {
             groupValue: currentThemeMode,
             onChanged: (value) {
               if (value != null) {
-                ref.read(themeSettingProvider.notifier).updateState(
+                ref.read(themeSettingProvider.notifier).update(
                   (state) => state.copyWith(themeMode: value),
                 );
                 Navigator.of(context).pop();
@@ -65,7 +65,7 @@ class ThemeDialog extends ConsumerWidget {
             groupValue: currentThemeMode,
             onChanged: (value) {
               if (value != null) {
-                ref.read(themeSettingProvider.notifier).updateState(
+                ref.read(themeSettingProvider.notifier).update(
                   (state) => state.copyWith(themeMode: value),
                 );
                 Navigator.of(context).pop();

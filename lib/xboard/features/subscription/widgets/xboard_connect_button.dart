@@ -1,5 +1,7 @@
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/controller.dart';
 import 'package:fl_clash/enum/enum.dart';
+import 'package:fl_clash/providers/database.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +24,7 @@ class _XBoardConnectButtonState extends ConsumerState<XBoardConnectButton>
   @override
   void initState() {
     super.initState();
-    isStart = globalState.appState.runTime != null;
+    isStart = false;
     _controller = AnimationController(
       vsync: this,
       value: isStart ? 1 : 0,
@@ -54,7 +56,7 @@ class _XBoardConnectButtonState extends ConsumerState<XBoardConnectButton>
     debouncer.call(
       FunctionTag.updateStatus,
       () {
-        globalState.appController.updateStatus(isStart);
+        appController.updateStatus(isStart);
       },
       duration: commonDuration,
     );
@@ -70,8 +72,10 @@ class _XBoardConnectButtonState extends ConsumerState<XBoardConnectButton>
   }
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(startButtonSelectorStateProvider);
-    if (!state.isInit || !state.hasProfile) {
+    final hasProfile = ref.watch(
+      profilesProvider.select((state) => state.isNotEmpty),
+    );
+    if (!hasProfile) {
       return Container();
     }
     if (widget.isFloating) {

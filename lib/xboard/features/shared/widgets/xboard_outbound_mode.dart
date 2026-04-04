@@ -1,7 +1,7 @@
+import 'package:fl_clash/controller.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +16,7 @@ class XBoardOutboundMode extends StatelessWidget {
   const XBoardOutboundMode({super.key});
   void _handleModeChange(WidgetRef ref, Mode modeOption) {
     _logger.debug('[XBoardOutboundMode] 切换模式到: $modeOption');
-    globalState.appController.changeMode(modeOption);
+    appController.changeMode(modeOption);
     if (modeOption == Mode.global) {
       _logger.debug('[XBoardOutboundMode] 切换到全局模式，执行自动节点选择');
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -34,18 +34,18 @@ class XBoardOutboundMode extends StatelessWidget {
           final shouldEnable = await TunIntroductionDialog.show(context);
           if (shouldEnable == true) {
             await storageService.markTunFirstUseShown();
-            ref.read(patchClashConfigProvider.notifier).updateState(
+            ref.read(patchClashConfigProvider.notifier).update(
                   (state) => state.copyWith.tun(enable: true),
                 );
           }
         }
       } else {
-        ref.read(patchClashConfigProvider.notifier).updateState(
+        ref.read(patchClashConfigProvider.notifier).update(
               (state) => state.copyWith.tun(enable: true),
             );
       }
     } else {
-      ref.read(patchClashConfigProvider.notifier).updateState(
+      ref.read(patchClashConfigProvider.notifier).update(
             (state) => state.copyWith.tun(enable: false),
           );
     }
@@ -79,7 +79,7 @@ class XBoardOutboundMode extends StatelessWidget {
     }
     if (validProxy != null) {
       _logger.debug('[XBoardOutboundMode] 设置选中代理: ${validProxy.name}');
-      globalState.appController.updateCurrentSelectedMap(
+      appController.updateCurrentSelectedMap(
         globalGroup.name,
         validProxy.name,
       );

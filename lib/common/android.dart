@@ -1,12 +1,12 @@
 import 'dart:io';
 
+import 'package:fl_clash/controller.dart';
 import 'package:fl_clash/plugins/app.dart';
-import 'package:fl_clash/state.dart';
 
 class Android {
   init() async {
     app?.onExit = () async {
-      await globalState.appController.savePreferences();
+      appController.savePreferencesDebounce();
     };
   }
 }
