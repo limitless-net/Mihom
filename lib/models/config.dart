@@ -28,6 +28,45 @@ const defaultBypassDomain = [
   '192.168.*',
 ];
 
+/// 校园网模式额外直连域名（覆盖常见 .edu.cn / CERNET / 校园门户等）
+const campusBypassDomains = [
+  '*.edu.cn',
+  '*.edu',
+  '*.ac.cn',
+  '*.edu.tw',
+  '*.edu.hk',
+  '*.edu.mo',
+  // CERNET 常见 IP 段（通配）
+  '202.112.*',
+  '202.113.*',
+  '202.114.*',
+  '202.115.*',
+  '202.116.*',
+  '202.117.*',
+  '202.118.*',
+  '202.119.*',
+  '202.120.*',
+  '210.25.*',
+  '210.26.*',
+  '210.27.*',
+  '210.28.*',
+  '210.29.*',
+  '210.30.*',
+  '210.31.*',
+  '210.32.*',
+  '210.33.*',
+  '210.34.*',
+  '210.35.*',
+  // 校园认证门户常见域名
+  '*.srun.com',
+  '*.ruijie.com.cn',
+  '*.cernet.edu.cn',
+  '*.edu.cernet.net',
+  // 内网
+  '*.internal',
+  '*.lan',
+];
+
 const defaultAppSettingProps = AppSettingProps();
 const defaultVpnProps = VpnProps();
 const defaultNetworkProps = NetworkProps();
@@ -140,7 +179,7 @@ abstract class WindowProps with _$WindowProps {
 extension WindowPropsExt on WindowProps {
   Size get _size => Size(width, height);
 
-  Size get size => _size.isEmpty ? Size(680, 580) : _size;
+  Size get size => _size.isEmpty ? Size(1060, 700) : _size;
 }
 
 @freezed

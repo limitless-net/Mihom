@@ -1,4 +1,4 @@
-display_name: Flclash
+display_name: 无界
 
 icon: ./assets/images/icon.png
 
@@ -8,7 +8,7 @@ keywords:
   - ClashMeta
   - Proxy
 
-generic_name: Flclash
+generic_name: 无界
 
 categories:
   - Network

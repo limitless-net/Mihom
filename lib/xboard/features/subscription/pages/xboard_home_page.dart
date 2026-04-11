@@ -271,9 +271,9 @@ class _XBoardHomePageState extends ConsumerState<XBoardHomePage>
               userNotifier.clearTokenExpiredError();
               // 处理 Token 过期（清除数据）
               await userNotifier.handleTokenExpired();
-              // 使用 go_router 导航到登录页（会清除所有路由）
+              // 导航回主页，MihomShell 会自动处理登录流程
               if (context.mounted) {
-                context.go('/login');
+                context.go('/');
               }
             },
             child: Text(appLocalizations.xboardRelogin),

@@ -1,0 +1,33 @@
+﻿flutter : Flutter assets will be downloaded from https://storage.googleapis.com
+. Make sure you trust this source!
+所在位置 行:1 字符: 1
++ flutter build windows --debug 2>&1 | Out-File "F:\wujieVPN\Mihom\buil ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Building Windows application...                                 
+lib/xboard/domain/models/user.dart(4,6): error GFAA2A68C: Error when reading 'l
+ib/xboard/domain/models/generated/user.g.dart': 缁崵绮洪幍鍙ョ瑝閸掔増瀵氱€规氨娈戦弬鍥︽閵? [F:\w
+ujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/domain/models/user.dart(4,6): error G297C951C: Can't use 'lib/xboard
+/domain/models/generated/user.g.dart' as a part, because it has no 'part of' de
+claration. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxpro
+j]
+lib/xboard/domain/models/user.dart(83,5): error G311314CC: Method not found: '_
+$DomainUserFromJson'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_asse
+mble.vcxproj]
+lib/xboard/domain/models/generated/user.freezed.dart(256,62): error G311314CC: 
+Method not found: '_$DomainUserFromJson'. [F:\wujieVPN\Mihom\build\windows\x64\
+flutter\flutter_assemble.vcxproj]
+lib/xboard/domain/models/generated/user.freezed.dart(318,10): error GE5CFE876: 
+The method '_$DomainUserToJson' isn't defined for the type '_DomainUser'. [F:\w
+ujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+E:\wujie\vis\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(254,5): erro
+r MSB8066: 鈥淔:\wujieVPN\Mihom\build\windows\x64\CMakeFiles\45ddf63dfd5e9fb81324
+8dcd47393bb6\flutter_windows.dll.rule;F:\wujieVPN\Mihom\build\windows\x64\CMake
+Files\5a519710a72efa1122e2d9764173530a\flutter_assemble.rule鈥濈殑鑷畾涔夌敓鎴愬凡閫€鍑猴紝浠ｇ
+爜涓?1銆?[F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+Building Windows application...                                    13.7s
+Build process failed.

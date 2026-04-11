@@ -4,6 +4,7 @@ import 'package:fl_clash/xboard/core/core.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/xboard/features/online_support/models/message_model.dart';
 import 'package:fl_clash/xboard/features/online_support/services/service_config.dart';
+import 'package:fl_clash/xboard/infrastructure/network/proxy_aware_base_client.dart';
 import 'package:http/http.dart' as http;
 
 // 初始化文件级日志器
@@ -19,10 +20,9 @@ class CustomerSupportApiService {
     http.Client? httpClient,
   }) : _httpClient = httpClient ?? _createHttpClient();
 
-  /// 创建一个禁用自动重定向的HTTP客户端
+  /// 创建代理感知的HTTP客户端（自动走 Relay/SOCKS5/直连）
   static http.Client _createHttpClient() {
-    // 使用标准HTTP客户端，但添加更多调试信息
-    return http.Client();
+    return ProxyAwareBaseClient();
   }
 
   /// 创建带有持久化头信息的请求

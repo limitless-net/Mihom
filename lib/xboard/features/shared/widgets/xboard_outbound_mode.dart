@@ -17,12 +17,6 @@ class XBoardOutboundMode extends StatelessWidget {
   void _handleModeChange(WidgetRef ref, Mode modeOption) {
     _logger.debug('[XBoardOutboundMode] 切换模式到: $modeOption');
     appController.changeMode(modeOption);
-    if (modeOption == Mode.global) {
-      _logger.debug('[XBoardOutboundMode] 切换到全局模式，执行自动节点选择');
-      Future.delayed(const Duration(milliseconds: 100), () {
-        _selectValidProxyForGlobalMode(ref);
-      });
-    }
   }
   Future<void> _handleTunToggle(BuildContext context, WidgetRef ref, bool selected) async {
     if (selected) {

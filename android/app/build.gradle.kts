@@ -37,7 +37,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.follow.clash"
+        applicationId = "com.wujie.wj"
         minSdk = flutter.minSdkVersion
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = flutter.versionCode
@@ -102,5 +102,12 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.smali.dexlib2) {
         exclude(group = "com.google.guava", module = "guava")
+    }
+}
+
+// Debug 构建时禁用 Google Services（google-services.json 中没有 .dev 后缀的 package_name）
+afterEvaluate {
+    tasks.matching { it.name == "processDebugGoogleServices" }.configureEach {
+        enabled = false
     }
 }

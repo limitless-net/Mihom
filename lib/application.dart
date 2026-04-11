@@ -20,6 +20,8 @@ import 'xboard/xboard.dart';
 import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart';
 import 'package:fl_clash/xboard/router/app_router.dart' as xboard_router;
 import 'package:fl_clash/xboard/features/initialization/initialization.dart';
+import 'package:fl_clash/mihom/providers/theme_provider.dart';
+import 'package:fl_clash/mihom/theme/mihom_theme.dart';
 
 class Application extends ConsumerStatefulWidget {
   const Application({super.key});
@@ -64,15 +66,19 @@ class ApplicationState extends ConsumerState<Application> {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final currentContext = globalState.navigatorKey.currentContext;
       if (currentContext != null) {
-        await appController.attach(currentContext, ref);
+        try {
+          await appController.attach(currentContext, ref);
+        } catch (e) {
+          debugPrint('[Application] appController.attach failed: $e');
+        }
       } else {
-        exit(0);
+        print('[Application] navigatorKey.currentContext is null, skipping attach');
       }
       _autoUpdateProfilesTask();
       appController.initLink();
       app?.initShortcuts();
 
-      // XBoard: 快速认证和更新检查
+      // XBoard: 快速认证检查
       _performQuickAuthWithDomainService();
       _checkForUpdates();
     });
@@ -121,10 +127,22 @@ class ApplicationState extends ConsumerState<Application> {
         if (updateState.hasUpdate && mounted) {
           final currentContext = globalState.navigatorKey.currentContext;
           if (currentContext != null) {
-            showDialog(
+            showGeneralDialog(
               context: currentContext,
               barrierDismissible: !updateState.forceUpdate,
-              builder: (context) => UpdateDialog(state: updateState),
+              barrierLabel: 'close',
+              barrierColor: Colors.black54,
+              transitionDuration: const Duration(milliseconds: 250),
+              transitionBuilder: (ctx, a1, a2, child) => Transform.scale(
+                scale: Curves.easeOutBack.transform(a1.value),
+                child: Opacity(opacity: a1.value, child: child),
+              ),
+              pageBuilder: (ctx, a1, a2) => Center(
+                child: Material(
+                  color: Colors.transparent,
+                  child: UpdateDialog(state: updateState),
+                ),
+              ),
             );
           }
         }
@@ -195,6 +213,14 @@ class ApplicationState extends ConsumerState<Application> {
         final themeProps = ref.watch(themeSettingProvider);
         final userState = ref.watch(xboardUserProvider);
 
+        // Mihom: 读取 Mihom 主题状态，决定 MaterialApp 的 colorSchemeSeed
+        final mihomThemeState = system.isDesktop
+            ? ref.watch(desktopThemeProvider)
+            : ref.watch(mobileThemeProvider);
+        final systemBrightness =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness;
+        final mihomTheme = resolveTheme(mihomThemeState, systemBrightness);
+
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
           localizationsDelegates: const [
@@ -217,42 +243,35 @@ class ApplicationState extends ConsumerState<Application> {
           title: appName,
           locale: utils.getLocaleForString(locale),
           supportedLocales: AppLocalizations.delegate.supportedLocales,
-          themeMode: themeProps.themeMode,
           theme: ThemeData(
             useMaterial3: true,
             pageTransitionsTheme: _pageTransitionsTheme,
-            colorScheme: _getAppColorScheme(
-              brightness: Brightness.light,
-              primaryColor: themeProps.primaryColor,
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            pageTransitionsTheme: _pageTransitionsTheme,
-            colorScheme: _getAppColorScheme(
-              brightness: Brightness.dark,
-              primaryColor: themeProps.primaryColor,
-            ).toPureBlack(themeProps.pureBlack),
+            colorSchemeSeed: mihomTheme.primary,
+            brightness: mihomTheme.isDark ? Brightness.dark : Brightness.light,
+            scaffoldBackgroundColor: mihomTheme.scaffoldBg,
           ),
         );
       },
     );
   }
 
-  // XBoard: 构建带认证重定向的路由器
+  // XBoard: 构建路由器 — MihomShell 在 '/' 接管所有 UI 状态
   GoRouter _buildRouter(UserAuthState userState) {
     return GoRouter(
       navigatorKey: globalState.navigatorKey,
       initialLocation: '/',
       routes: xboard_router.routes,
       redirect: (context, state) {
-        final isAuthenticated = userState.isAuthenticated;
-        final isInitialized = userState.isInitialized;
-        final isLoginPage = state.uri.path == '/login';
+        final currentPath = state.uri.path;
 
-        if (!isInitialized) return '/loading';
-        if (!isAuthenticated && !isLoginPage) return '/login';
-        if (isAuthenticated && isLoginPage) return '/';
+        // '/' (MihomShell) 始终放行 — 内部处理初始化+认证
+        if (currentPath == '/') return null;
+
+        // 兼容旧路径 — 已移除的页面重定向到 MihomShell
+        if (currentPath == '/loading' || currentPath == '/login') return '/';
+
+        // 子页面（购买、支付等）需要认证
+        if (!userState.isAuthenticated) return '/';
 
         return null;
       },

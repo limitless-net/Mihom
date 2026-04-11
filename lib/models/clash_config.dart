@@ -7,7 +7,7 @@ part 'generated/clash_config.g.dart';
 
 const defaultClashConfig = ClashConfig();
 
-const defaultTun = Tun();
+const defaultTun = Tun(enable: true);
 const defaultDns = Dns();
 const defaultGeoXUrl = GeoXUrl();
 

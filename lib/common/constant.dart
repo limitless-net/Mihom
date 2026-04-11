@@ -9,7 +9,8 @@ import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:flutter/material.dart';
 
-const appName = 'FlClash';
+const appName = "无界";
+const appNameEn = "Wujie";
 const appHelperService = 'FlClashHelperService';
 const coreName = 'clash.meta';
 const browserUa =
@@ -59,6 +60,25 @@ const defaultExternalController = '127.0.0.1:9090';
 const maxMobileWidth = 600;
 const maxLaptopWidth = 840;
 const defaultTestUrl = 'https://www.gstatic.com/generate_204';
+
+/// 延迟测试URL列表（多URL竞速，取最低延迟）
+const delayTestUrls = [
+  'https://www.gstatic.com/generate_204',
+  'http://www.qualcomm.cn/generate_204',
+  'http://www.apple.com/library/test/success.html',
+  'http://cp.cloudflare.com/generate_204',
+  'http://www.google-analytics.com/generate_204',
+];
+
+/// URL对应的简短标签（用于日志）
+const delayTestUrlLabels = {
+  'https://www.gstatic.com/generate_204': 'gstatic',
+  'http://www.qualcomm.cn/generate_204': 'qualcomm',
+  'http://www.apple.com/library/test/success.html': 'apple',
+  'http://cp.cloudflare.com/generate_204': 'cloudflare',
+  'http://www.google-analytics.com/generate_204': 'analytics',
+};
+
 final commonFilter = ImageFilter.blur(
   sigmaX: 5,
   sigmaY: 5,

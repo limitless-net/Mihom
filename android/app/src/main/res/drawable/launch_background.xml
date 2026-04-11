@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 启动页背景：与 Flutter 初始化页面一致 -->
+<!-- 背景 #F0F4FF + 居中应用图标（带圆角的真实图标） -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 全屏背景色 -->
+    <item android:drawable="@color/splash_background" />
+    <!-- 应用图标（居中，使用预渲染的圆角 webp） -->
+    <item android:gravity="center">
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_icon" />
+    </item>
+</layer-list>

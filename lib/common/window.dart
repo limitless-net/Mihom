@@ -27,15 +27,15 @@ class Window {
       protocol.register('flclash');
     }
     await windowManager.ensureInitialized();
-    // kDebugMode ? Size(680, 580) :
+    // Always start at fixed default size (ignore saved size)
     WindowOptions windowOptions = WindowOptions(
-      size: props.size,
-      minimumSize: const Size(380, 400),
+      size: const Size(800, 600),
+      minimumSize: const Size(680, 520),
     );
     if (!system.isMacOS || version > 10) {
       await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
     }
-    await windowManager.setMaximizable(false);
+    await windowManager.setMaximizable(true);
     await _windowPosition(props);
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setPreventClose(true);

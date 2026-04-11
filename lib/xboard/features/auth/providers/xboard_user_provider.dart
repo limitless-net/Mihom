@@ -17,7 +17,7 @@ final userInfoProvider = StateProvider<DomainUser?>((ref) => null);
 final subscriptionInfoProvider = StateProvider<DomainSubscription?>((ref) => null);
 final userUIStateProvider = StateProvider<UIState>((ref) => const UIState());
 class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
-  late final XBoardStorageService _storageService;
+  late XBoardStorageService _storageService;
   
   @override
   UserAuthState build() {
@@ -113,12 +113,14 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
   }
   Future<void> _silentUpdateUserData() async {
     try {
-      // 获取订阅信息
+      // 获取订阅信息（invalidate 确保拿到最新数据）
+      ref.invalidate(getSubscriptionProvider);
       final subscriptionModel = await ref.read(getSubscriptionProvider.future);
       final subscriptionData = _mapSubscription(subscriptionModel);
 
       // 获取用户信息
       try {
+        ref.invalidate(getUserInfoProvider);
         final userModel = await ref.read(getUserInfoProvider.future);
         final userInfoData = _mapUser(userModel);
         
@@ -190,6 +192,7 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       // 获取用户信息和订阅信息
       try {
         _logger.info('开始获取用户信息...');
+        ref.invalidate(getUserInfoProvider);
         final userModel = await ref.read(getUserInfoProvider.future);
         final userInfo = _mapUser(userModel);
         
@@ -199,6 +202,7 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
         _logger.info('用户信息已保存: ${userInfo.email}');
         
         _logger.info('开始获取订阅信息...');
+        ref.invalidate(getSubscriptionProvider);
         final subscriptionModel = await ref.read(getSubscriptionProvider.future);
         final subscriptionInfo = _mapSubscription(subscriptionModel);
         
@@ -288,13 +292,18 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       _logger.info('发送验证码到: $email');
-      // 域名服务暂时不支持发送验证码功能
-      throw UnimplementedError('发送验证码功能暂时不可用');
+      final success = await XBoardSDK.instance.auth.sendEmailVerifyCode(email);
+      state = state.copyWith(isLoading: false);
+      return success;
     } catch (e) {
       _logger.info('发送验证码出错: $e');
+      String errorMessage = '发送验证码失败';
+      if (e is XBoardException) {
+        errorMessage = e.message;
+      }
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: errorMessage,
       );
       return false;
     }
@@ -342,6 +351,7 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       DomainSubscription? subscriptionData;
       
       try {
+        ref.invalidate(getUserInfoProvider);
         final userModel = await ref.read(getUserInfoProvider.future);
         userInfo = _mapUser(userModel);
         await _storageService.saveDomainUser(userInfo);
@@ -351,6 +361,7 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       }
 
       try {
+        ref.invalidate(getSubscriptionProvider);
         final subscriptionModel = await ref.read(getSubscriptionProvider.future);
         subscriptionData = _mapSubscription(subscriptionModel);
         await _storageService.saveDomainSubscription(subscriptionData);
@@ -385,18 +396,20 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
     }
   }
 
+  /// 刷新用户/订阅数据（余额、流量、套餐等），不触发配置导入，不影响连接状态。
   Future<void> refreshSubscriptionInfo() async {
     if (!state.isAuthenticated) {
       return;
     }
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      _logger.info('刷新订阅信息...');
+      _logger.info('刷新订阅信息（仅数据，不导入配置）...');
       
       DomainUser? userInfo;
       DomainSubscription? subscriptionData;
       
       try {
+        ref.invalidate(getUserInfoProvider);
         final userModel = await ref.read(getUserInfoProvider.future);
         userInfo = _mapUser(userModel);
         await _storageService.saveDomainUser(userInfo);
@@ -406,6 +419,7 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       }
 
       try {
+        ref.invalidate(getSubscriptionProvider);
         final subscriptionModel = await ref.read(getSubscriptionProvider.future);
         subscriptionData = _mapSubscription(subscriptionModel);
         await _storageService.saveDomainSubscription(subscriptionData);
@@ -419,19 +433,7 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
         subscriptionInfo: subscriptionData,
         isLoading: false,
       );
-      _logger.info('订阅信息已刷新');
-
-      // 触发订阅导入流程
-      if (subscriptionData?.subscribeUrl.isNotEmpty == true) {
-        _logger.info('[手动刷新] 开始导入订阅配置: ${subscriptionData!.subscribeUrl}');
-        _logger.info('[手动刷新] 使用强制刷新模式，跳过重复检测');
-        ref.read(profileImportProvider.notifier).importSubscription(
-          subscriptionData.subscribeUrl,
-          forceRefresh: true,
-        );
-      } else {
-        _logger.info('[手动刷新] 订阅链接为空，跳过导入');
-      }
+      _logger.info('订阅信息已刷新（未触发配置导入）');
     } catch (e) {
       _logger.info('刷新订阅信息出错: $e');
       state = state.copyWith(
@@ -496,8 +498,8 @@ DomainUser _mapUser(UserModel user) {
     transferLimit: user.transferEnable.toInt(),
     uploadedBytes: 0,
     downloadedBytes: 0,
-    balanceInCents: (user.balance * 100).toInt(),
-    commissionBalanceInCents: (user.commissionBalance * 100).toInt(),
+    balanceInCents: user.balance.toInt(),
+    commissionBalanceInCents: user.commissionBalance.toInt(),
     expiredAt: user.expiredAt,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
@@ -507,6 +509,9 @@ DomainUser _mapUser(UserModel user) {
     discount: user.discount,
     commissionRate: user.commissionRate,
     telegramId: user.telegramId,
+    userId: user.id,
+    period: user.period,
+    groupId: user.groupId,
   );
 }
 

@@ -49,7 +49,7 @@ final class CurrentGroupsStateProvider
 }
 
 String _$currentGroupsStateHash() =>
-    r'dbf8f02606a31486c99d7b89d19914cd5a1fc496';
+    r'468369867d9c372f55b324a1a4adeb68f804e0a9';
 
 @ProviderFor(navigationItemsState)
 const navigationItemsStateProvider = NavigationItemsStateProvider._();
@@ -2497,7 +2497,7 @@ final class SetupStateProvider
   }
 }
 
-String _$setupStateHash() => r'8e0c849fa1a51ee15f8b40be94e3094182325b58';
+String _$setupStateHash() => r'ac2b9a324808d77b2270afe7bded12b40d94bfa1';
 
 final class SetupStateFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<SetupState>, int?> {

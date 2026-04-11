@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:fl_clash/xboard/config/xboard_config.dart';
 import 'package:fl_clash/xboard/config/utils/config_file_loader.dart';
+import 'package:fl_clash/xboard/infrastructure/network/relay_client.dart';
 import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart';
 // 已从core/utils导出
 import 'package:fl_clash/xboard/core/core.dart';
 import 'package:fl_clash/xboard/infrastructure/infrastructure.dart';
 import 'package:fl_clash/xboard/infrastructure/http/user_agent_config.dart';
+import 'package:socks5_proxy/socks_client.dart';
 import 'encrypted_subscription_service.dart';
 
 // 初始化文件级日志器
@@ -305,28 +307,47 @@ class ConcurrentSubscriptionService {
     }
   }
 
-  /// 发起HTTP请求获取数据（复用EncryptedSubscriptionService的逻辑）
+  /// 发起HTTP请求获取数据（通过最优代理通道）
   static Future<DataResult> _fetchEncryptedData(String url) async {
     try {
+      final userAgent = await UserAgentConfig.get(UserAgentScenario.subscriptionRacing);
+      final headers = <String, String>{
+        HttpHeaders.userAgentHeader: userAgent,
+        HttpHeaders.acceptHeader: '*/*',
+      };
+
+      // 检查竞速结果决定代理方式
+      final racing = XBoardConfig.lastRacingResult;
+      final proxyUrl = (racing != null && racing.useProxy && racing.proxyUrl != null)
+          ? racing.proxyUrl
+          : null;
+
+      if (proxyUrl != null && proxyUrl.toLowerCase().startsWith('relay://')) {
+        return _fetchViaRelay(url, proxyUrl, headers);
+      }
+
+      // SOCKS5 或直连走 HttpClient
       final client = HttpClient();
       client.connectionTimeout = requestTimeout;
-      
+      client.badCertificateCallback = (_, _, _) => true;
+
+      if (proxyUrl != null && proxyUrl.toLowerCase().startsWith('socks5://')) {
+        _configureSocks5(client, proxyUrl);
+      } else {
+        client.findProxy = (_) => 'DIRECT';
+      }
+
       final uri = Uri.parse(url);
       final request = await client.getUrl(uri);
-      
-      // 设置请求头
-      final userAgent = await UserAgentConfig.get(UserAgentScenario.subscriptionRacing);
-      request.headers.set(HttpHeaders.userAgentHeader, userAgent);
-      request.headers.set(HttpHeaders.acceptHeader, '*/*');
-      
+      headers.forEach((k, v) => request.headers.set(k, v));
+
       final response = await request.close().timeout(requestTimeout);
-      
+
       if (response.statusCode == 200) {
         final responseBody = await response.transform(utf8.decoder).join();
         final subscriptionUserInfo = response.headers.value('subscription-userinfo');
         client.close();
-        
-        // 尝试解析JSON响应
+
         try {
           final jsonData = jsonDecode(responseBody);
           if (jsonData is Map<String, dynamic> && jsonData.containsKey('data')) {
@@ -335,19 +356,73 @@ class ConcurrentSubscriptionService {
         } catch (e) {
           // 如果不是JSON，直接返回响应体
         }
-        
+
         return DataResult.success(responseBody, subscriptionUserInfo: subscriptionUserInfo);
-        
       } else {
         client.close();
         return DataResult.failure('HTTP请求失败: ${response.statusCode}');
       }
-      
     } on TimeoutException {
       return DataResult.failure('请求超时');
     } catch (e) {
       return DataResult.failure('请求异常: $e');
     }
+  }
+
+  /// 通过 Relay 中继获取订阅数据
+  static Future<DataResult> _fetchViaRelay(
+      String url, String relayUrl, Map<String, String> headers) async {
+    try {
+      final response = await RelayClient.request(
+        relayUrl: relayUrl,
+        targetUrl: url,
+        method: 'GET',
+        headers: headers,
+        timeout: requestTimeout,
+      );
+      if (response.isSuccess) {
+        final body = response.bodyString;
+        final subscriptionUserInfo = response.headers['subscription-userinfo'];
+        try {
+          final jsonData = jsonDecode(body);
+          if (jsonData is Map<String, dynamic> && jsonData.containsKey('data')) {
+            return DataResult.success(jsonData['data'] as String,
+                subscriptionUserInfo: subscriptionUserInfo);
+          }
+        } catch (_) {}
+        return DataResult.success(body, subscriptionUserInfo: subscriptionUserInfo);
+      }
+      return DataResult.failure('Relay请求失败: ${response.statusCode}');
+    } catch (e) {
+      return DataResult.failure('Relay异常: $e');
+    }
+  }
+
+  /// 配置 SOCKS5 代理
+  static void _configureSocks5(HttpClient client, String proxyUrl) {
+    var proxy = proxyUrl;
+    if (proxy.toLowerCase().startsWith('socks5://')) {
+      proxy = proxy.substring(9);
+    }
+    String? username;
+    String? password;
+    String hostPort = proxy;
+    if (proxy.contains('@')) {
+      final atIdx = proxy.lastIndexOf('@');
+      final auth = proxy.substring(0, atIdx);
+      hostPort = proxy.substring(atIdx + 1);
+      if (auth.contains(':')) {
+        username = auth.substring(0, auth.indexOf(':'));
+        password = auth.substring(auth.indexOf(':') + 1);
+      }
+    }
+    final parts = hostPort.split(':');
+    final host = parts[0];
+    final port = parts.length > 1 ? int.parse(parts[1]) : 1080;
+    SocksTCPClient.assignToHttpClient(client, [
+      ProxySettings(InternetAddress(host), port,
+          username: username, password: password),
+    ]);
   }
 }
 

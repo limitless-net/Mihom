@@ -189,7 +189,7 @@ class SubscriptionDownloader {
       if (cancelToken.isCancelled) {
         _logger.info('[任务$taskIndex] 已取消: $connectionType');
       } else {
-        _logger.warning('[任务$taskIndex] 下载失败: $connectionType - $e');
+        _logger.warning('[任务$taskIndex] 下载失败: $connectionType - ${translateError(e)}');
       }
       rethrow;
     }

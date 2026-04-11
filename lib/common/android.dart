@@ -8,6 +8,10 @@ class Android {
     app?.onExit = () async {
       appController.savePreferencesDebounce();
     };
+    app?.onVpnPermissionDenied = () {
+      // 用户取消了 VPN 权限，重置连接状态
+      appController.updateStatus(false);
+    };
   }
 }
 

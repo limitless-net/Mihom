@@ -3,11 +3,13 @@
 /// 说明：不同的 User-Agent 是有意设计的，服务端会根据 UA 返回不同格式的数据
 /// 
 /// 使用场景：
-/// 1. 订阅下载：必须使用 'FlClash' 才能获取 Clash 配置格式（硬编码）
+/// 1. 订阅下载：必须使用 'FlClash/v版本号' 才能获取包含 hy2 等节点的 Clash 配置格式
 /// 2. API/域名竞速：使用加密 UA 通过 Caddy 反代认证（从配置文件读取）
 /// 3. 其他服务：使用特定版本号标识（硬编码）
 library;
 
+import 'dart:io';
+import 'package:fl_clash/state.dart';
 import '../../config/utils/config_file_loader.dart';
 
 /// User-Agent 配置类
@@ -21,7 +23,10 @@ import '../../config/utils/config_file_loader.dart';
 /// ```
 class UserAgentConfig {
   // 硬编码的 User-Agent（非域名竞速场景）
-  static const String _subscription = 'FlClash';
+  static String get _subscription {
+    final version = globalState.packageInfo.version;
+    return 'FlClash/v$version clash-verge Platform/${Platform.operatingSystem}';
+  }
   static const String _subscriptionRacing = 'FlClash/1.0 (XBoard Race Subscription Client)';
   static const String _attachment = 'FlClash/1.0';
   

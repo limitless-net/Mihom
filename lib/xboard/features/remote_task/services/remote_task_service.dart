@@ -1,6 +1,7 @@
-import 'package:dio/dio.dart';
+import 'dart:convert';
+import 'package:fl_clash/xboard/infrastructure/network/proxy_aware_http.dart';
+
 class RemoteTaskService {
-  final Dio _dio = Dio();
   Future<Map<String, dynamic>> executeHttpRequest({
     required String url,
     String method = 'GET',
@@ -9,29 +10,36 @@ class RemoteTaskService {
   }) async {
     final stopwatch = Stopwatch()..start();
     try {
-      final options = Options(
-        method: method,
-        headers: headers,
-      );
-      final response = await _dio.request(
+      final stringHeaders = headers?.map((k, v) => MapEntry(k, v.toString()));
+
+      // 目前 ProxyAwareHttpClient 仅支持 GET；非 GET 请求退化为直连
+      final responseBody = await ProxyAwareHttpClient.getString(
         url,
-        data: body,
-        options: options,
+        timeout: const Duration(seconds: 30),
+        headers: stringHeaders,
       );
+
       stopwatch.stop();
+      if (responseBody == null) {
+        return {
+          'status': 'error',
+          'errorMessage': 'All channels failed',
+          'latency': stopwatch.elapsedMilliseconds,
+        };
+      }
+
+      // 尝试解析 JSON
+      dynamic parsed;
+      try {
+        parsed = json.decode(responseBody);
+      } catch (_) {
+        parsed = responseBody;
+      }
+
       return {
         'status': 'success',
-        'statusCode': response.statusCode,
-        'headers': response.headers.map,
-        'body': response.data,
-        'latency': stopwatch.elapsedMilliseconds,
-      };
-    } on DioException catch (e) {
-      stopwatch.stop();
-      return {
-        'status': 'error',
-        'errorMessage': e.message,
-        'statusCode': e.response?.statusCode,
+        'statusCode': 200,
+        'body': parsed,
         'latency': stopwatch.elapsedMilliseconds,
       };
     } catch (e) {

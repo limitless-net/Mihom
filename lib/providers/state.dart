@@ -36,6 +36,7 @@ GroupsState currentGroupsState(Ref ref) {
         groups
             .where((item) => item.hidden == false)
             .where((element) => element.name != GroupName.GLOBAL.name)
+            .where((element) => element.type == GroupType.Selector)
             .toList(),
     },
   );
@@ -687,7 +688,7 @@ Future<SetupState> setupState(Ref ref, int? profileId) async {
   final script = await ref.watch(scriptProvider(scriptId).future);
   final overrideDns = ref.watch(overrideDnsProvider);
   final List<Rule> addedRules = profileId != null
-      ? await ref.watch(addedRuleStreamProvider(profileId).future)
+      ? await ref.watch(addedRuleStreamProvider(profileId).future).catchError((_) => <Rule>[])
       : [];
   return SetupState(
     profileId: profileId,

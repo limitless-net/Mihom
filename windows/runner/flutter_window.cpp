@@ -28,7 +28,7 @@ bool FlutterWindow::OnCreate() {
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
-
+    this->Show();
   });
 
   // Flutter can complete the first frame before the "show window" callback is
@@ -51,6 +51,20 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // Enforce minimum window size BEFORE Flutter can intercept the message
+  if (message == WM_GETMINMAXINFO) {
+    MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
+    double sf = 1.0;
+    HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    if (mon) {
+      UINT dpi = FlutterDesktopGetDpiForMonitor(mon);
+      if (dpi > 0) sf = dpi / 96.0;
+    }
+    mmi->ptMinTrackSize.x = static_cast<LONG>(600 * sf);
+    mmi->ptMinTrackSize.y = static_cast<LONG>(500 * sf);
+    return 0;
+  }
+
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =

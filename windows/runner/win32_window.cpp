@@ -216,6 +216,19 @@ Win32Window::MessageHandler(HWND hwnd,
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
+
+    case WM_GETMINMAXINFO: {
+      MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
+      double sf = 1.0;
+      HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      if (mon) {
+        UINT dpi = FlutterDesktopGetDpiForMonitor(mon);
+        if (dpi > 0) sf = dpi / 96.0;
+      }
+      mmi->ptMinTrackSize.x = static_cast<LONG>(600 * sf);
+      mmi->ptMinTrackSize.y = static_cast<LONG>(600 * sf);
+      return 0;
+    }
   }
 
   return DefWindowProc(window_handle_, message, wparam, lparam);

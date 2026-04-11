@@ -93,7 +93,7 @@ class Build {
     BuildItem(target: Target.android, arch: Arch.amd64, archName: 'x86_64'),
   ];
 
-  static String get appName => 'FlClash';
+  static String get appName => "无界";
 
   static String get coreName => 'FlClashCore';
 
@@ -132,6 +132,35 @@ class Build {
 
   static String get tags => 'with_gvisor';
 
+  // ── 日志工具 ──────────────────────────────────────────────
+  static int _stepIndex = 0;
+  static final _stopwatch = Stopwatch();
+
+  static void _logHeader(String title) {
+    _stepIndex++;
+    print('');
+    print('┌─────────────────────────────────────────────');
+    print('│ STEP $_stepIndex: $title');
+    print('└─────────────────────────────────────────────');
+    _stopwatch.reset();
+    _stopwatch.start();
+  }
+
+  static void _logSuccess(String msg) {
+    _stopwatch.stop();
+    final elapsed = (_stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(1);
+    print('  ✅ $msg (${elapsed}s)');
+  }
+
+  static void _logInfo(String msg) {
+    print('  ℹ️  $msg');
+  }
+
+  static void _logCmd(List<String> executable) {
+    print('  \$ ${executable.join(' ')}');
+  }
+
+  // ── 命令执行 ──────────────────────────────────────────────
   static Future<void> exec(
     List<String> executable, {
     String? name,
@@ -139,9 +168,7 @@ class Build {
     String? workingDirectory,
     bool runInShell = true,
   }) async {
-    if (name != null) print('run $name');
-    print('exec: ${executable.join(' ')}');
-    print('env: ${environment.toString()}');
+    _logCmd(executable);
     final process = await Process.start(
       executable[0],
       executable.sublist(1),
@@ -156,7 +183,7 @@ class Build {
       print(utf8.decode(data));
     });
     final exitCode = await process.exitCode;
-    if (exitCode != 0 && name != null) throw '$name error';
+    if (exitCode != 0 && name != null) throw '$name error (exit code: $exitCode)';
   }
 
   static Future<String> calcSha256(String filePath) async {
@@ -283,6 +310,21 @@ class Build {
       'FlClashHelperService${target.executableExtensionName}',
     );
     await File(outPath).copy(targetPath);
+    _logInfo('Helper → $targetPath');
+  }
+
+  /// 执行品牌定制脚本 (branding.dart)
+  static Future<void> runBranding() async {
+    final brandingScript = join(current, 'branding.dart');
+    if (!File(brandingScript).existsSync()) {
+      _logInfo('branding.dart 不存在，跳过品牌替换');
+      return;
+    }
+    await exec(
+      ['dart', 'run', brandingScript],
+      name: 'branding',
+      workingDirectory: current,
+    );
   }
 
   static List<String> getExecutable(String command) {
@@ -438,6 +480,7 @@ class BuildCommand extends Command {
 
   @override
   Future<void> run() async {
+    final totalStopwatch = Stopwatch()..start();
     final mode = target == Target.android ? Mode.lib : Mode.core;
     final String out = argResults?['out'] ?? (target.same ? 'app' : 'core');
     final archName = argResults?['arch'];
@@ -451,32 +494,67 @@ class BuildCommand extends Command {
       throw 'Invalid arch parameter';
     }
 
+    // ── 打印构建参数摘要 ──
+    print('');
+    print('╔══════════════════════════════════════════════╗');
+    print('║          Wujie Build Pipeline                ║');
+    print('╚══════════════════════════════════════════════╝');
+    print('  平台: ${target.name}');
+    print('  架构: ${archName ?? "all"}');
+    print('  模式: ${mode.name}');
+    print('  环境: $env');
+    print('  输出: $out');
+
+    // ── STEP 1: 品牌替换 ──
+    Build._logHeader('品牌定制 (branding)');
+    await Build.runBranding();
+    Build._logSuccess('品牌替换完成');
+
+    // ── STEP 2: 编译 Core ──
+    Build._logHeader('编译 ${mode.name == "lib" ? "动态库" : "核心"} (${target.name}/${archName ?? "all"})');
     final corePaths = await Build.buildCore(
       target: target,
       arch: arch,
       mode: mode,
     );
-
-    String? coreSha256;
-
-    if (Platform.isWindows) {
-      coreSha256 = await Build.calcSha256(corePaths.first);
-      await Build.buildHelper(target, coreSha256);
+    for (final p in corePaths) {
+      Build._logInfo('Core → $p');
     }
+    Build._logSuccess('Core 编译完成');
+
+    // ── STEP 3: Helper Service (仅 Windows) ──
+    String? coreSha256;
+    if (Platform.isWindows) {
+      Build._logHeader('编译 Helper Service');
+      coreSha256 = await Build.calcSha256(corePaths.first);
+      Build._logInfo('Core SHA256: $coreSha256');
+      await Build.buildHelper(target, coreSha256);
+      Build._logSuccess('Helper Service 编译完成');
+    }
+
+    // ── STEP N: 生成 env.json ──
+    Build._logHeader('生成环境配置 (env.json)');
     await _buildEnvFile(env, coreSha256: coreSha256);
+    Build._logInfo('APP_ENV=$env${coreSha256 != null ? ", CORE_SHA256=${coreSha256.substring(0, 16)}..." : ""}');
+    Build._logSuccess('env.json 生成完成');
+
     if (out != 'app') {
+      _printSummary(totalStopwatch, env, 'core-only');
       return;
     }
 
+    // ── STEP N+1: Flutter 打包 ──
+    Build._logHeader('Flutter 打包 (${target.name})');
+
     switch (target) {
       case Target.windows:
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           targets: 'exe,zip',
           args: ' --description $archName',
           env: env,
         );
-        return;
+        break;
       case Target.linux:
         final targetMap = {Arch.arm64: 'linux-arm64', Arch.amd64: 'linux-x64'};
         final targets = [
@@ -486,14 +564,14 @@ class BuildCommand extends Command {
         ].join(',');
         final defaultTarget = targetMap[arch];
         await _getLinuxDependencies(arch!);
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           targets: targets,
           args:
               ' --description $archName --build-target-platform $defaultTarget',
           env: env,
         );
-        return;
+        break;
       case Target.android:
         final targetMap = {
           Arch.arm: 'android-arm',
@@ -505,24 +583,42 @@ class BuildCommand extends Command {
             .where((element) => arch == null ? true : element == arch)
             .map((e) => targetMap[e])
             .toList();
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           targets: 'apk',
           args:
               ",split-per-abi --build-target-platform ${defaultTargets.join(",")}",
           env: env,
         );
-        return;
+        break;
       case Target.macos:
         await _getMacosDependencies();
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           targets: 'dmg',
           args: ' --description $archName',
           env: env,
         );
-        return;
+        break;
     }
+
+    Build._logSuccess('Flutter 打包完成');
+    _printSummary(totalStopwatch, env, '${target.name}/$archName');
+  }
+
+  void _printSummary(Stopwatch sw, String env, String desc) {
+    sw.stop();
+    final elapsed = (sw.elapsedMilliseconds / 1000).toStringAsFixed(1);
+    print('');
+    print('╔══════════════════════════════════════════════╗');
+    print('║  ✅  构建完成                                ║');
+    print('╠══════════════════════════════════════════════╣');
+    print('║  目标: $desc');
+    print('║  环境: $env${env == 'pre' ? ' (右上角会显示 PRE 标记)' : ' (正式版)'}');
+    print('║  耗时: ${elapsed}s');
+    print('║  产物: ${Build.distPath}/');
+    print('╚══════════════════════════════════════════════╝');
+    print('');
   }
 }
 

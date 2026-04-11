@@ -1,4 +1,4 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
 #pragma code_page(65001)
 #include "resource.h"
@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.follow" "\0"
-            VALUE "FileDescription", "FlClash" "\0"
+            VALUE "CompanyName", "Wujie" "\0"
+            VALUE "FileDescription", "无界" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "clash" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.follow. All rights reserved." "\0"
-            VALUE "OriginalFilename", "FlClash.exe" "\0"
-            VALUE "ProductName", "clash" "\0"
+            VALUE "InternalName", "无界" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 Wujie. All rights reserved." "\0"
+            VALUE "OriginalFilename", "无界.exe" "\0"
+            VALUE "ProductName", "无界" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

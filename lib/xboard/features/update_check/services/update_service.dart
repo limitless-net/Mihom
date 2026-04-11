@@ -1,9 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:fl_clash/xboard/core/core.dart';
 import 'package:fl_clash/xboard/config/xboard_config.dart';
-import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
+import 'package:fl_clash/xboard/infrastructure/network/proxy_aware_http.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:fl_clash/common/common.dart';
 
@@ -56,50 +55,25 @@ class UpdateService {
     throw Exception(appLocalizations.updateCheckAllServersUnavailable);
   }
 
-  /// 从指定URL检查更新
+  /// 从指定URL检查更新（使用代理感知的 HTTP 客户端）
   Future<Map<String, dynamic>> _checkForUpdatesFromUrl(String serverUrl) async {
     final currentVersion = await getCurrentVersion();
     final platform = _getPlatformName();
-    final dio = Dio();
     final requestUrl = '$serverUrl/api/v1/check-update?version=$currentVersion&platform=$platform';
     
     _logger.info('发送更新检查请求: $requestUrl');
-    dio.options.connectTimeout = const Duration(seconds: 15);
-    dio.options.receiveTimeout = const Duration(seconds: 15);
-    dio.options.validateStatus = (status) {
-      return status != null && status < 600; // 接受所有小于600的状态码
-    };
-    
-    (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-      final client = HttpClient();
-      if (kDebugMode) {
-        client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-          _logger.debug('忽略SSL证书验证: $host:$port');
-          return true;
-        };
-      }
-      return client;
-    };
-    
-    final response = await dio.get(
+
+    final responseBody = await ProxyAwareHttpClient.getString(
       requestUrl,
-      options: Options(
-        headers: {
-          'Accept': 'application/json',
-        },
-      ),
+      timeout: const Duration(seconds: 15),
+      headers: {'Accept': 'application/json'},
     );
-    
-    if (response.statusCode != 200) {
-      final errorMessage = appLocalizations.updateCheckServerError(response.statusCode!);
-      if (response.statusCode == 530) {
-        throw Exception('$errorMessage - ${appLocalizations.updateCheckServerTemporarilyUnavailable}');
-      } else {
-        throw Exception('$errorMessage: ${response.data}');
-      }
+
+    if (responseBody == null) {
+      throw Exception(appLocalizations.updateCheckServerError(0));
     }
-    
-    final responseData = response.data as Map<String, dynamic>;
+
+    final responseData = json.decode(responseBody) as Map<String, dynamic>;
     return {
       "currentVersion": currentVersion,
       "latestVersion": responseData["latest_version"]?.toString() ?? "",

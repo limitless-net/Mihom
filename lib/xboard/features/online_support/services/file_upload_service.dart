@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:fl_clash/xboard/core/core.dart';
 import 'package:fl_clash/xboard/features/online_support/models/message_model.dart';
 import 'package:fl_clash/xboard/features/online_support/services/service_config.dart';
+import 'package:fl_clash/xboard/infrastructure/network/proxy_aware_base_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
@@ -51,7 +52,7 @@ class FileUploadService {
   FileUploadService({
     required this.baseUrl,
     http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+  }) : _httpClient = httpClient ?? ProxyAwareBaseClient();
 
   /// 单文件上传
   Future<UploadResult> uploadFile({

@@ -73,14 +73,14 @@ void setUserOnSupportPage(bool isOnPage) {
 /// 客服聊天Notifier
 class ChatNotifier extends StateNotifier<ChatState> {
   final CustomerSupportApiService _apiService;
-  final CustomerSupportWebSocketService _wsService;
+  final CustomerSupportWebSocketService? _wsService;
   StreamSubscription? _wsMessageSubscription;
   int _currentOffset = 0;
   static const int _pageSize = 20;
 
   ChatNotifier({
     required CustomerSupportApiService apiService,
-    required CustomerSupportWebSocketService wsService,
+    required CustomerSupportWebSocketService? wsService,
   })  : _apiService = apiService,
         _wsService = wsService,
         super(const ChatState()) {
@@ -188,7 +188,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       final attachmentIds = attachments.map((a) => a.id).toList();
       
       // 优先使用WebSocket发送
-      if (_wsService.isConnected) {
+      if (_wsService != null && _wsService.isConnected) {
         _wsService.sendMessageWithAttachments(content.trim(), attachmentIds);
       } else {
         // 后备使用HTTP API
@@ -306,7 +306,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     // 尝试通过WebSocket标记已读（根据后端源码，这是主要实现方式）
     try {
-      if (_wsService.isConnected) {
+      if (_wsService != null && _wsService.isConnected) {
         final messageIntIds = messageIds
             .map((id) => int.tryParse(id))
             .where((id) => id != null)
@@ -315,7 +315,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         
         if (messageIntIds.isNotEmpty) {
           _logger.debug('通过WebSocket标记消息已读: $messageIntIds');
-          _wsService.markMessagesAsRead(messageIntIds);
+          _wsService!.markMessagesAsRead(messageIntIds);
         }
       } else {
         _logger.debug('WebSocket未连接，尝试HTTP API标记已读');
@@ -375,7 +375,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
   /// 监听WebSocket消息
   void _listenToWebSocketMessages() {
     _wsMessageSubscription?.cancel();
-    _wsMessageSubscription = _wsService.messageStream.listen(
+    _wsMessageSubscription = _wsService?.messageStream.listen(
       (wsMessage) {
         // 只处理新消息类型
         if (wsMessage.type == WebSocketMessageType.newMessage && wsMessage.data != null) {
@@ -445,10 +445,18 @@ final apiServiceProvider = Provider<CustomerSupportApiService>((ref) {
   );
 });
 
-final wsServiceProvider = Provider<CustomerSupportWebSocketService>((ref) {
+final wsServiceProvider = Provider<CustomerSupportWebSocketService?>((ref) {
   final wsBaseUrl = CustomerSupportServiceConfig.wsBaseUrl;
   if (wsBaseUrl == null) {
-    throw Exception(appLocalizations.onlineSupportWebSocketConfigNotFound);
+    _logger.info('wsServiceProvider', 'WebSocket URL 未配置');
+    return null;
+  }
+
+  // Skip placeholder/example URLs to avoid connection errors
+  final uri = Uri.tryParse(wsBaseUrl);
+  if (uri == null || (uri.host.endsWith('example.com'))) {
+    _logger.info('wsServiceProvider', 'WebSocket URL 为占位符，跳过: $wsBaseUrl');
+    return null;
   }
 
   final service = CustomerSupportWebSocketService(
@@ -470,6 +478,10 @@ final wsServiceProvider = Provider<CustomerSupportWebSocketService>((ref) {
 /// 先发送当前状态,然后监听后续变化,确保订阅时能立即获取状态
 final wsConnectionStatusProvider = StreamProvider<WebSocketStatus>((ref) async* {
   final wsService = ref.watch(wsServiceProvider);
+  if (wsService == null) {
+    yield WebSocketStatus.disconnected;
+    return;
+  }
 
   // 先 yield 当前状态
   yield wsService.currentStatus;

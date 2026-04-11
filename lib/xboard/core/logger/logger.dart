@@ -14,7 +14,7 @@ import 'console_logger.dart';
 ///
 /// 提供全局日志实例，支持自定义日志实现
 class XBoardLogger {
-  static LoggerInterface _instance = ConsoleLogger();
+  static LoggerInterface _instance = ConsoleLogger(enableColor: true);
 
   /// 获取当前日志实例
   static LoggerInterface get instance => _instance;
@@ -28,7 +28,7 @@ class XBoardLogger {
 
   /// 重置为默认日志实现
   static void reset() {
-    _instance = ConsoleLogger();
+    _instance = ConsoleLogger(enableColor: true);
   }
 
   // 便捷方法

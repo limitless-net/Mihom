@@ -4,6 +4,7 @@ import 'package:fl_clash/core/core.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/state.dart';
+import 'package:flutter/foundation.dart';
 
 double get listHeaderHeight {
   final measure = globalState.measure;
@@ -36,10 +37,10 @@ Future<void> proxyDelayTest(Proxy proxy, [String? testUrl]) async {
     return;
   }
   appController.setDelay(
-    Delay(url: currentTestUrl, name: state.proxyName, value: 0),
+    Delay(url: currentTestUrl, name: state.proxyName, value: null),
   );
   appController.setDelay(
-    await coreController.getDelay(currentTestUrl, state.proxyName),
+    await _racingDelayTest(state.proxyName, currentTestUrl),
   );
 }
 
@@ -61,8 +62,8 @@ Future<void> delayTest(List<Proxy> proxies, [String? testUrl]) async {
     if (name.isEmpty) {
       return;
     }
-    appController.setDelay(Delay(url: url, name: name, value: 0));
-    appController.setDelay(await coreController.getDelay(url, name));
+    appController.setDelay(Delay(url: url, name: name, value: null));
+    appController.setDelay(await _racingDelayTest(name, url));
   }).toList();
 
   final batchesDelayProxies = delayProxies.batch(100);
@@ -70,6 +71,45 @@ Future<void> delayTest(List<Proxy> proxies, [String? testUrl]) async {
     await Future.wait(batchDelayProxies);
   }
   appController.addSortNum();
+}
+
+/// 多URL竞速延迟测试
+///
+/// 同时向多个测试URL发送请求，取最低延迟结果
+Future<Delay> _racingDelayTest(String proxyName, String displayUrl) async {
+  final results = await Future.wait(
+    delayTestUrls.map((url) async {
+      try {
+        return await coreController.getDelay(url, proxyName);
+      } catch (_) {
+        return Delay(name: proxyName, url: url, value: -1);
+      }
+    }),
+  );
+
+  // 找最低正延迟
+  Delay? best;
+  final parts = <String>[];
+  for (final r in results) {
+    final label = delayTestUrlLabels[r.url] ?? r.url;
+    if (r.value != null && r.value! > 0) {
+      parts.add('$label ${r.value}ms');
+      if (best == null || r.value! < best.value!) {
+        best = r;
+      }
+    } else {
+      parts.add('$label ✗');
+    }
+  }
+
+  if (best != null) {
+    final winLabel = delayTestUrlLabels[best.url] ?? best.url;
+    debugPrint('[延迟] $proxyName: ${parts.join(' | ')} → $winLabel ${best.value}ms ✓');
+    return Delay(name: proxyName, url: displayUrl, value: best.value);
+  }
+
+  debugPrint('[延迟] $proxyName: ${parts.join(' | ')} → 全部超时');
+  return Delay(name: proxyName, url: displayUrl, value: -1);
 }
 
 double getScrollToSelectedOffset({

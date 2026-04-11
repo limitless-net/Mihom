@@ -1,5 +1,5 @@
-display_name: Flclash
-package_name: Flclash
+display_name: 无界
+package_name: wujie
 maintainer:
   name: chen08209
   email: chen08209@gmail.com
@@ -20,7 +20,7 @@ keywords:
   - ClashMeta
   - Proxy
 
-generic_name: Flclash
+generic_name: 无界
 
 categories:
   - Network

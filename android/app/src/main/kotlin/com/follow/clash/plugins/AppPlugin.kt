@@ -17,6 +17,8 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.follow.clash.R
+import com.follow.clash.RunState
+import com.follow.clash.State
 import com.follow.clash.common.Components
 import com.follow.clash.common.GlobalState
 import com.follow.clash.common.QuickAction
@@ -401,6 +403,12 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         if (requestCode == VPN_PERMISSION_REQUEST_CODE) {
             if (resultCode == FlutterActivity.RESULT_OK) {
                 invokeVpnPrepareCallback()
+            } else {
+                // 用户取消了 VPN 权限对话框，清理回调并重置运行状态
+                vpnPrepareCallback = null
+                State.runStateFlow.tryEmit(RunState.STOP)
+                // 通知 Flutter 侧重置连接状态
+                channel.invokeMethod("vpnPermissionDenied", null)
             }
         }
         return true

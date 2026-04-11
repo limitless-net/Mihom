@@ -1,0 +1,90 @@
+﻿flutter : Flutter assets will be downloaded from https://storage.googleapis.com
+. Make sure you trust this source!
+所在位置 行:1 字符: 1
++ flutter build windows --debug 2>&1 | Out-File "F:\wujieVPN\Mihom\buil ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Building Windows application...                                 
+lib/xboard/features/initialization/models/initialization_state.dart(3,6): error
+ GFAA2A68C: Error when reading 'lib/xboard/features/initialization/models/gener
+ated/initialization_state.freezed.dart': 缁崵绮洪幍鍙ョ瑝閸掔増瀵氱€规氨娈戦弬鍥︽閵? [F:\wujieVPN
+\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(3,6): error
+ G297C951C: Can't use 'lib/xboard/features/initialization/models/generated/init
+ialization_state.freezed.dart' as a part, because it has no 'part of' declarati
+on. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(25,41): err
+or G5FE39F1E: Type '_$InitializationState' not found. [F:\wujieVPN\Mihom\build\
+windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(25,16): err
+or G42E56F65: The type '_$InitializationState' can't be mixed in. [F:\wujieVPN\
+Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(44,8): erro
+r GF7CA4DBF: Couldn't find constructor '_InitializationState'. [F:\wujieVPN\Mih
+om\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(44,8): erro
+r G22A956AA: Redirection constructor target not found: '_InitializationState' [
+F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(49,23): err
+or G4127D1E8: The getter 'status' isn't defined for the type 'InitializationSta
+te'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(53,7): erro
+r G4127D1E8: The getter 'status' isn't defined for the type 'InitializationStat
+e'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(54,7): erro
+r G4127D1E8: The getter 'status' isn't defined for the type 'InitializationStat
+e'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(57,24): err
+or G4127D1E8: The getter 'status' isn't defined for the type 'InitializationSta
+te'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(61,13): err
+or G4127D1E8: The getter 'status' isn't defined for the type 'InitializationSta
+te'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/initialization/models/initialization_state.dart(60,11): err
+or G54CF1E69: A non-null value must be returned since the return type 'int' doe
+sn't allow null. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.
+vcxproj]
+lib/xboard/features/initialization/providers/initialization_provider.dart(52,21
+): error GE5CFE876: The method 'copyWith' isn't defined for the type 'Initializ
+ationState'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxp
+roj]
+lib/xboard/features/initialization/providers/initialization_provider.dart(76,21
+): error GE5CFE876: The method 'copyWith' isn't defined for the type 'Initializ
+ationState'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxp
+roj]
+lib/xboard/features/initialization/providers/initialization_provider.dart(90,21
+): error GE5CFE876: The method 'copyWith' isn't defined for the type 'Initializ
+ationState'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxp
+roj]
+lib/xboard/features/initialization/providers/initialization_provider.dart(100,2
+1): error GE5CFE876: The method 'copyWith' isn't defined for the type 'Initiali
+zationState'. [F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcx
+proj]
+lib/xboard/features/auth/pages/login_page.dart(342,25): error G4127D1E8: The ge
+tter 'status' isn't defined for the type 'InitializationState'. [F:\wujieVPN\Mi
+hom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/auth/pages/login_page.dart(371,63): error G8D6A8295: Non-nu
+llable variable 'statusColor' must be assigned before it can be used. [F:\wujie
+VPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/auth/pages/login_page.dart(375,19): error G8D6A8295: Non-nu
+llable variable 'statusIcon' must be assigned before it can be used. [F:\wujieV
+PN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/xboard/features/auth/pages/login_page.dart(377,26): error G8D6A8295: Non-nu
+llable variable 'statusColor' must be assigned before it can be used. [F:\wujie
+VPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/mihom/shell/mihom_shell.dart(229,32): error G4127D1E8: The getter 'errorMes
+sage' isn't defined for the type 'InitializationState'. [F:\wujieVPN\Mihom\buil
+d\windows\x64\flutter\flutter_assemble.vcxproj]
+lib/mihom/shell/mihom_shell.dart(248,17): error G4127D1E8: The getter 'currentS
+tepDescription' isn't defined for the type 'InitializationState'. [F:\wujieVPN\
+Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+E:\wujie\vis\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(254,5): erro
+r MSB8066: 鈥淔:\wujieVPN\Mihom\build\windows\x64\CMakeFiles\45ddf63dfd5e9fb81324
+8dcd47393bb6\flutter_windows.dll.rule;F:\wujieVPN\Mihom\build\windows\x64\CMake
+Files\5a519710a72efa1122e2d9764173530a\flutter_assemble.rule鈥濈殑鑷畾涔夌敓鎴愬凡閫€鍑猴紝浠ｇ
+爜涓?1銆?[F:\wujieVPN\Mihom\build\windows\x64\flutter\flutter_assemble.vcxproj]
+Building Windows application...                                    13.2s
+Build process failed.

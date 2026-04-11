@@ -75,7 +75,9 @@ class NoticeHtmlStyles {
           case 'a':
             return {
               'color': _colorToHex(colorScheme.primary),
+              'font-weight': '600',
               'text-decoration': 'underline',
+              'text-decoration-thickness': '2px',
             };
           case 'code':
             return {

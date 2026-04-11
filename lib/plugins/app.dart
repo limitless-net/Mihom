@@ -10,6 +10,7 @@ class App {
   static App? _instance;
   late MethodChannel methodChannel;
   Function()? onExit;
+  Function()? onVpnPermissionDenied;
 
   App._internal() {
     methodChannel = const MethodChannel('$packageName/app');
@@ -18,6 +19,10 @@ class App {
         case 'exit':
           if (onExit != null) {
             await onExit!();
+          }
+        case 'vpnPermissionDenied':
+          if (onVpnPermissionDenied != null) {
+            onVpnPermissionDenied!();
           }
         default:
           throw MissingPluginException();

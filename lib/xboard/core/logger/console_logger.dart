@@ -25,37 +25,43 @@ class ConsoleLogger implements LoggerInterface {
   });
 
   /// ANSI 颜色代码
-  static const String _resetColor = '\x1B[0m';
-  static const String _debugColor = '\x1B[36m'; // Cyan
-  static const String _infoColor = '\x1B[32m'; // Green
-  static const String _warningColor = '\x1B[33m'; // Yellow
-  static const String _errorColor = '\x1B[31m'; // Red
+  static const String _reset = '\x1B[0m';
+  static const String _debugColor = '\x1B[2;36m';       // 暗淡青色
+  static const String _infoColor = '\x1B[32m';           // 绿色
+  static const String _warningColor = '\x1B[1;33m';      // 粗体黄色
+  static const String _errorColor = '\x1B[1;37;41m';     // 粗体白字红底
+
+  /// 各级别 emoji 前缀
+  static const String _debugEmoji = '🔍';
+  static const String _infoEmoji = 'ℹ️';
+  static const String _warningEmoji = '⚠️';
+  static const String _errorEmoji = '❌';
 
   @override
   void debug(String message, [Object? error, StackTrace? stackTrace]) {
     if (minLevel.index <= LogLevel.debug.index) {
-      _log('DEBUG', message, error, stackTrace, _debugColor);
+      _log('DEBUG', message, error, stackTrace, _debugColor, _debugEmoji);
     }
   }
 
   @override
   void info(String message, [Object? error, StackTrace? stackTrace]) {
     if (minLevel.index <= LogLevel.info.index) {
-      _log('INFO', message, error, stackTrace, _infoColor);
+      _log('INFO', message, error, stackTrace, _infoColor, _infoEmoji);
     }
   }
 
   @override
   void warning(String message, [Object? error, StackTrace? stackTrace]) {
     if (minLevel.index <= LogLevel.warning.index) {
-      _log('WARN', message, error, stackTrace, _warningColor);
+      _log('WARN', message, error, stackTrace, _warningColor, _warningEmoji);
     }
   }
 
   @override
   void error(String message, [Object? error, StackTrace? stackTrace]) {
     if (minLevel.index <= LogLevel.error.index) {
-      _log('ERROR', message, error, stackTrace, _errorColor);
+      _log('ERROR', message, error, stackTrace, _errorColor, _errorEmoji);
     }
   }
 
@@ -65,30 +71,38 @@ class ConsoleLogger implements LoggerInterface {
     Object? error,
     StackTrace? stackTrace,
     String colorCode,
+    String emoji,
   ) {
     final timestamp = enableTimestamp ? _getTimestamp() : '';
-    final prefix = enableColor ? '$colorCode$_prefix' : _prefix;
-    final levelStr = enableColor ? '[$level]' : '[$level]';
-    final resetColor = enableColor ? _resetColor : '';
 
-    // 构建日志消息
-    final buffer = StringBuffer();
-    buffer.write('$prefix$timestamp$levelStr $message$resetColor');
-
-    // 输出主消息
-    // ignore: avoid_print
-    print(buffer.toString());
-
-    // 输出错误信息（保持格式一致）
-    if (error != null) {
+    if (enableColor) {
+      // 彩色模式：emoji + ANSI颜色 + 粗体区分
+      final buffer = StringBuffer();
+      buffer.write('$colorCode$emoji $_prefix$timestamp[$level] $message$_reset');
       // ignore: avoid_print
-      print('$prefix$timestamp$levelStr Error: $error$resetColor');
-    }
+      print(buffer.toString());
 
-    // 输出堆栈跟踪（保持格式一致）
-    if (stackTrace != null) {
+      if (error != null) {
+        // ignore: avoid_print
+        print('$colorCode$emoji $_prefix$timestamp[$level] Error: $error$_reset');
+      }
+      if (stackTrace != null) {
+        // ignore: avoid_print
+        print('$colorCode$emoji $_prefix$timestamp[$level] StackTrace:\n$stackTrace$_reset');
+      }
+    } else {
+      // 纯文本模式：仅用 emoji 区分
       // ignore: avoid_print
-      print('$prefix$timestamp$levelStr StackTrace:\n$stackTrace$resetColor');
+      print('$emoji $_prefix$timestamp[$level] $message');
+
+      if (error != null) {
+        // ignore: avoid_print
+        print('$emoji $_prefix$timestamp[$level] Error: $error');
+      }
+      if (stackTrace != null) {
+        // ignore: avoid_print
+        print('$emoji $_prefix$timestamp[$level] StackTrace:\n$stackTrace');
+      }
     }
   }
 

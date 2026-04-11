@@ -10,7 +10,7 @@ class FlClashHttpOverrides extends HttpOverrides {
     }
     final port = appController.config.patchClashConfig.mixedPort;
     final isStart = appController.isStart;
-    commonPrint.log('find $url proxy:$isStart');
+    commonPrint.log('请求 $url ${isStart ? '走代理' : '直连'}');
     if (!isStart) return 'DIRECT';
     return 'PROXY localhost:$port';
   }

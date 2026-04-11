@@ -24,6 +24,14 @@ class NoticeMarkdownStyles {
         letterSpacing: 0.15,
       ),
 
+      // ========== 对齐方式 ==========
+      textAlign: WrapAlignment.center,
+      h1Align: WrapAlignment.center,
+      h2Align: WrapAlignment.center,
+      h3Align: WrapAlignment.center,
+      unorderedListAlign: WrapAlignment.center,
+      orderedListAlign: WrapAlignment.center,
+
       // ========== 标题层级 (降级处理) ==========
       // H1: 正文主标题 - 使用 titleLarge
       h1: textTheme.titleLarge?.copyWith(
@@ -95,8 +103,10 @@ class NoticeMarkdownStyles {
       // ========== 链接 ==========
       a: textTheme.bodyMedium?.copyWith(
         color: colorScheme.primary,
+        fontWeight: FontWeight.w600,
         decoration: TextDecoration.underline,
         decorationColor: colorScheme.primary.withValues(alpha: 0.6),
+        decorationThickness: 2,
       ),
 
       // ========== 列表 ==========

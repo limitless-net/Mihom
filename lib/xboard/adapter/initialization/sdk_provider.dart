@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart';
 import 'package:fl_clash/xboard/config/xboard_config.dart';
 import 'package:fl_clash/xboard/infrastructure/http/user_agent_config.dart';
@@ -62,10 +63,10 @@ Future<XBoardSDK> xboardSdk(Ref ref) async {
       _logger.info('[XBoardSdkProvider] 使用直连');
     }
     
-    // 4. 加载HTTP配置
+    // 4. 加载HTTP配置（携带代理URL）
     _logger.info('[XBoardSdkProvider] 加载HTTP配置...');
-    final httpConfig = await _loadHttpConfig();
-    _logger.info('[XBoardSdkProvider] HTTP配置加载完成');
+    final httpConfig = await _loadHttpConfig(proxyUrl: proxyUrl);
+    _logger.info('[XBoardSdkProvider] HTTP配置加载完成 (proxyUrl: ${proxyUrl ?? "直连"})');
     
     // 5. 初始化SDK
     final sdk = XBoardSDK.instance;
@@ -74,6 +75,8 @@ Future<XBoardSDK> xboardSdk(Ref ref) async {
       panelType: panelType,
       proxyUrl: proxyUrl,
       httpConfig: httpConfig,
+      enableLogging: kDebugMode,
+      usePrintLogger: kDebugMode,
     );
     
     _logger.info('[XBoardSdkProvider] SDK初始化成功');
@@ -91,7 +94,8 @@ Future<XBoardSDK> xboardSdk(Ref ref) async {
 /// - User-Agent
 /// - 混淆前缀
 /// - 证书配置
-Future<HttpConfig> _loadHttpConfig() async {
+/// - 代理URL（来自竞速结果）
+Future<HttpConfig> _loadHttpConfig({String? proxyUrl}) async {
   try {
     // 从配置文件获取加密 UA（用于 API 请求和 Caddy 认证）
     final userAgent = await UserAgentConfig.get(
@@ -113,6 +117,7 @@ Future<HttpConfig> _loadHttpConfig() async {
       enableAutoDeobfuscation: obfuscationPrefix != null,
       certificatePath: certEnabled ? certPath : null,
       enableCertificatePinning: certEnabled && certPath != null,
+      proxyUrl: proxyUrl,
     );
   } catch (e) {
     _logger.error('[XBoardSdkProvider] 加载HTTP配置失败，使用默认配置', e);

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fl_clash/xboard/features/notice/notice.dart';
+import 'package:fl_clash/mihom/theme/mihom_theme.dart';
+import 'package:fl_clash/mihom/providers/theme_provider.dart';
 import '../styles/markdown_styles.dart';
 import '../styles/html_styles.dart';
 
@@ -97,23 +99,23 @@ class _NoticeBannerState extends ConsumerState<NoticeBanner>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startAutoScroll(notices);
     });
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final t = ref.read(desktopThemeProvider).baseTheme;
     
     return Container(
       height: 40,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark 
-            ? Theme.of(context).colorScheme.surfaceContainerHighest
-            : Theme.of(context).colorScheme.surfaceContainerLow,
+        color: t.isDark 
+            ? t.cardBg
+            : t.cardBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+          color: t.textHint.withValues(alpha: 0.15),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
+            color: t.primary.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -126,7 +128,7 @@ class _NoticeBannerState extends ConsumerState<NoticeBanner>
             child: Icon(
               Icons.campaign_rounded,
               size: 18,
-              color: Theme.of(context).colorScheme.primary,
+              color: t.primary,
             ),
           ),
           Expanded(
@@ -143,8 +145,9 @@ class _NoticeBannerState extends ConsumerState<NoticeBanner>
                         : MarkdownBody(
                             data: notices[_currentIndex % notices.length],
                             styleSheet: MarkdownStyleSheet(
-                              p: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface,
+                              p: TextStyle(
+                                fontSize: 12,
+                                color: t.textPrimary,
                                 fontWeight: FontWeight.w500,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -168,17 +171,29 @@ class _NoticeBannerState extends ConsumerState<NoticeBanner>
     // 在打开对话框前移除焦点
     FocusScope.of(context).unfocus();
     
-    showDialog(
+    final theme = ref.read(desktopThemeProvider).baseTheme;
+    showGeneralDialog(
       context: context,
-      builder: (context) => NoticeDetailDialog(
-        notices: noticeState.visibleNotices,
-        initialIndex: _currentIndex,
-        onPageChanged: (index) {
-          // 更新当前索引以便外部知道
-        },
+      barrierDismissible: true,
+      barrierLabel: 'close',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 250),
+      transitionBuilder: (ctx, a1, a2, child) => Transform.scale(
+        scale: Curves.easeOutBack.transform(a1.value),
+        child: Opacity(opacity: a1.value, child: child),
+      ),
+      pageBuilder: (ctx, a1, a2) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: NoticeDetailDialog(
+            notices: noticeState.visibleNotices,
+            initialIndex: _currentIndex,
+            theme: theme,
+            onPageChanged: (index) {},
+          ),
+        ),
       ),
     ).then((_) {
-      // 对话框关闭后也确保移除焦点
       if (mounted) {
         FocusScope.of(context).unfocus();
       }
@@ -186,15 +201,17 @@ class _NoticeBannerState extends ConsumerState<NoticeBanner>
   }
 }
 class NoticeDetailDialog extends StatefulWidget {
-  final List<dynamic> notices; // 使用 Notice 类型的列表
+  final List<dynamic> notices;
   final int initialIndex;
   final ValueChanged<int>? onPageChanged;
+  final MihomTheme? theme;
   
   const NoticeDetailDialog({
     super.key,
     required this.notices,
     this.initialIndex = 0,
     this.onPageChanged,
+    this.theme,
   });
   @override
   State<NoticeDetailDialog> createState() => _NoticeDetailDialogState();
@@ -205,6 +222,7 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
   late int _currentIndex;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  MihomTheme get t => widget.theme ?? MihomTheme.azure;
   
   @override
   void initState() {
@@ -235,11 +253,8 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
-        // 当对话框关闭时（无论通过什么方式），移除焦点
         if (didPop) {
           Future.microtask(() {
             if (context.mounted) {
@@ -250,44 +265,16 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
       },
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Container(
           constraints: BoxConstraints(
-            maxWidth: screenWidth > 600 ? 600 : double.infinity,
-            maxHeight: screenHeight * 0.85,
+            maxWidth: screenWidth > 600 ? 520 : double.infinity,
+            maxHeight: screenHeight * 0.75,
           ),
           decoration: BoxDecoration(
-            // 在暗色主题下使用稍亮的背景色以区分弹窗
-            color: isDark 
-                ? Theme.of(context).colorScheme.surfaceContainerHighest
-                : Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
-            // 添加明显的边框
-            border: Border.all(
-              color: isDark
-                  ? Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)
-                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
-              width: isDark ? 1.5 : 1,
-            ),
-            boxShadow: [
-              // 增强暗色主题下的阴影
-              BoxShadow(
-                color: isDark 
-                    ? Colors.black.withValues(alpha: 0.5)
-                    : Colors.black.withValues(alpha: 0.1),
-                blurRadius: isDark ? 30 : 20,
-                spreadRadius: isDark ? 2 : 0,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.15 : 0.05),
-                blurRadius: 40,
-                offset: const Offset(0, 5),
-              ),
-            ],
+            color: t.cardBg,
+            borderRadius: BorderRadius.circular(20),
+            border: t.cardBorder,
+            boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.15), blurRadius: 30)],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -301,7 +288,6 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
             ],
           ),
         ),
-        ),
       ),
     );
   }
@@ -309,84 +295,54 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
   Widget _buildHeader() {
     final currentNotice = widget.notices[_currentIndex];
     final title = currentNotice.title ?? '无标题';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
-      decoration: BoxDecoration(
-        // 在暗色主题下头部使用更亮的背景色
-        color: isDark
-            ? Theme.of(context).colorScheme.surfaceContainer
-            : Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.2 : 0.1),
-            width: 1,
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 18, 18, 0),
       child: Row(
         children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: t.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.campaign, color: t.primary, size: 20),
+          ),
+          const SizedBox(width: 10),
           Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            child: Text(
+              title,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.textPrimary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
           if (widget.notices.length > 1) ...[
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                color: t.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                  width: 1,
-                ),
+                border: Border.all(color: t.primary.withValues(alpha: 0.3)),
               ),
               child: Text(
                 '${_currentIndex + 1}/${widget.notices.length}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: t.primary, fontWeight: FontWeight.bold, fontSize: 11),
               ),
             ),
             const SizedBox(width: 6),
           ],
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
               onTap: () {
-                // 在关闭对话框前移除焦点，避免键盘弹出
                 FocusScope.of(context).unfocus();
                 Navigator.of(context).pop();
               },
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(6.0),
-                child: Icon(
-                  Icons.close_rounded,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                  size: 20,
-                ),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: Icon(Icons.close, color: t.textHint, size: 18),
               ),
             ),
           ),
@@ -431,25 +387,8 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
   }
   
   Widget _buildNavigationBar() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        // 在暗色主题下底部导航栏使用更亮的背景色
-        color: isDark
-            ? Theme.of(context).colorScheme.surfaceContainer
-            : Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(24),
-        ),
-        border: Border(
-          top: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.2 : 0.1),
-            width: 1,
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 8, 22, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -485,64 +424,28 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
     required VoidCallback onPressed,
     bool isReversed = false,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    final color = enabled ? t.primary : t.textHint;
+    final children = [
+      Icon(icon, size: 20, color: color),
+      const SizedBox(width: 4),
+      Text(label, style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600)),
+    ];
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
         onTap: enabled ? onPressed : null,
-        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: enabled 
-                ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            color: enabled ? t.primary.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: enabled 
-                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
-                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-              width: 1,
+              color: enabled ? t.primary.withValues(alpha: 0.3) : t.textHint.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            children: isReversed ? [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: enabled 
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                icon,
-                size: 20,
-                color: enabled 
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.outline,
-              ),
-            ] : [
-              Icon(
-                icon,
-                size: 20,
-                color: enabled 
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.outline,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: enabled 
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+            children: isReversed ? children.reversed.toList() : children,
           ),
         ),
       ),
@@ -561,9 +464,7 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
           width: index == _currentIndex ? 24 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: index == _currentIndex
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+            color: index == _currentIndex ? t.primary : t.textHint.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
@@ -595,9 +496,7 @@ class _NoticeDetailDialogState extends State<NoticeDetailDialog>
         if (notice.createdAt != null || notice.updatedAt != null) ...[
           Text(
             formatTime(notice.createdAt),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
+            style: TextStyle(fontSize: 12, color: t.textHint),
           ),
           const SizedBox(height: 12),
         ],

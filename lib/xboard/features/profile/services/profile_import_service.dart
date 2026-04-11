@@ -15,6 +15,7 @@ import 'package:fl_clash/xboard/features/subscription/services/subscription_down
 import 'package:fl_clash/xboard/features/subscription/utils/utils.dart';
 import 'package:fl_clash/xboard/core/core.dart';
 import 'package:fl_clash/xboard/config/utils/config_file_loader.dart';
+import 'package:fl_clash/xboard/utils/xboard_notification.dart';
 
 // 初始化文件级日志器
 final _logger = FileLogger('profile_import_service.dart');
@@ -114,7 +115,9 @@ class XBoardProfileImportService {
       for (final profile in urlProfiles) {
         _logger.debug('删除旧的URL配置: ${profile.label ?? profile.id}');
         _ref.read(profilesProvider.notifier).del(profile.id);
-        _clearProfileEffect(profile.id.toString());
+        // 注意：不调用 _clearProfileEffect，因为紧接着会添加新 profile 并设为 current。
+        // _clearProfileEffect 会将 currentProfileId 设为 null 并可能停止核心，
+        // 导致后续 applyProfile 时 config.yaml 为空。
       }
       
       _logger.info('清理了 ${urlProfiles.length} 个旧的URL配置');
@@ -275,6 +278,9 @@ class XBoardProfileImportService {
 
   Future<void> _addProfile(Profile profile) async {
     try {
+      // 记录导入前连接状态
+      final wasConnected = appController.isStart;
+
       // 1. 添加配置到列表
       _ref.read(profilesProvider.notifier).put(profile);
       
@@ -283,16 +289,70 @@ class XBoardProfileImportService {
       currentProfileIdNotifier.value = profile.id;
       _logger.info('✅ 已设置为当前配置: ${profile.label ?? profile.id}');
       
-      // 3. 使用 silence 模式直接应用配置（新路由系统中 homeScaffoldKey 不可用）
-      // needSetupProvider 的监听器会触发 handleChangeProfile，但因为 commonScaffoldState 
-      // 未 mounted 会失败，所以我们在这里手动用 silence 模式触发
-      _logger.info('📋 使用 silence 模式应用配置...');
+      // 3. 等待 core 初始化完成后再应用配置
+      _logger.info('📋 等待核心初始化...');
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (!_ref.read(initProvider) && DateTime.now().isBefore(deadline)) {
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+      _logger.info('📋 强制应用配置...');
       try {
-        await appController.applyProfile(silence: true);
+        await appController.applyProfile(force: true, silence: true);
         _logger.info('✅ 配置应用成功');
+
+        // 如果之前在连接状态，提示用户需要重连
+        if (wasConnected) {
+          _logger.info('⚠️ 订阅更新导致连接断开，提示用户重连');
+          XBoardNotification.showWarning('订阅已更新，请重新连接');
+        }
+        // Go 核心在解析 config.yaml 后会立即注册所有内联代理（包括 hy2）。
+        // 延迟调用确保 UI 状态与核心保持同步：
+        //   2s  → 快速刷新，捕获首次 applyProfile 完成后的节点状态
+        //   5s  → 重新应用配置（re-applyProfile），修复首次加载时的时序问题
+        //   10s → 最终兜底刷新
+        Future.delayed(const Duration(seconds: 2), () async {
+          try {
+            final currentProfile = _ref.read(currentProfileProvider);
+            if (currentProfile != null && currentProfile.id == profile.id) {
+              _logger.info('🔄 延迟刷新节点列表(2s)...');
+              await appController.updateGroups();
+              _logger.info('✅ 节点列表已刷新(2s)');
+            }
+          } catch (e) {
+            _logger.warning('延迟刷新节点列表失败(2s): $e');
+          }
+        });
+        Future.delayed(const Duration(seconds: 5), () async {
+          try {
+            final currentProfile = _ref.read(currentProfileProvider);
+            if (currentProfile != null && currentProfile.id == profile.id) {
+              _logger.info('🔄 重新应用配置以确保节点加载(5s)...');
+              // 重新调用 applyProfile 确保核心完整重载，解决首次时序问题
+              await appController.applyProfile(force: true, silence: true);
+              _logger.info('✅ 配置重新应用完成(5s)');
+            }
+          } catch (e) {
+            _logger.warning('重新应用配置失败(5s): $e');
+          }
+        });
+        Future.delayed(const Duration(seconds: 10), () async {
+          try {
+            final currentProfile = _ref.read(currentProfileProvider);
+            if (currentProfile != null && currentProfile.id == profile.id) {
+              _logger.info('🔄 最终兜底节点刷新(10s)...');
+              await appController.updateGroups();
+              _logger.info('✅ 节点列表已刷新(10s)');
+            }
+          } catch (e) {
+            _logger.warning('延迟刷新节点列表失败(10s): $e');
+          }
+        });
       } catch (e) {
-        _logger.error('❌ 配置应用失败', e);
-        // 不抛出异常，因为配置已经保存了
+        _logger.error('❌ 配置应用失败，尝试刷新节点列表', e);
+        try {
+          await appController.updateGroups();
+          _logger.info('✅ 节点列表刷新成功');
+        } catch (_) {}
       }
       
       _logger.info('配置添加成功: ${profile.label ?? profile.id}');

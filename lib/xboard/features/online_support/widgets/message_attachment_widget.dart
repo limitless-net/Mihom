@@ -5,9 +5,9 @@ import 'package:fl_clash/xboard/utils/xboard_notification.dart';
 import 'package:fl_clash/xboard/features/online_support/models/message_model.dart';
 
 import 'package:fl_clash/xboard/features/online_support/services/service_config.dart';
+import 'package:fl_clash/xboard/infrastructure/network/proxy_aware_base_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
 
 // 初始化文件级日志器
 final _logger = FileLogger('message_attachment_widget.dart');
@@ -84,7 +84,7 @@ class _MessageAttachmentWidgetState extends State<MessageAttachmentWidget> {
 
       _logger.debug('开始加载图片: $imageUrl');
 
-      final client = http.Client();
+      final client = ProxyAwareBaseClient();
       try {
         final userAgent = await UserAgentConfig.get(UserAgentScenario.attachment);
         final response = await client.get(

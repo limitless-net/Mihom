@@ -4,6 +4,8 @@ import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/controller.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/providers/providers.dart';
+import 'package:fl_clash/mihom/providers/theme_provider.dart';
+import 'package:fl_clash/mihom/theme/mihom_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_ext/window_ext.dart';
@@ -118,15 +120,10 @@ class WindowHeaderContainer extends StatelessWidget {
         if ((version <= 10 || !isMobileView) && system.isMacOS) {
           return child!;
         }
-        return Stack(
+        return Column(
           children: [
-            Column(
-              children: [
-                SizedBox(height: kHeaderHeight),
-                Expanded(flex: 1, child: child!),
-              ],
-            ),
             const WindowHeader(),
+            Expanded(child: child!),
           ],
         );
       },
@@ -135,14 +132,14 @@ class WindowHeaderContainer extends StatelessWidget {
   }
 }
 
-class WindowHeader extends StatefulWidget {
+class WindowHeader extends ConsumerStatefulWidget {
   const WindowHeader({super.key});
 
   @override
-  State<WindowHeader> createState() => _WindowHeaderState();
+  ConsumerState<WindowHeader> createState() => _WindowHeaderState();
 }
 
-class _WindowHeaderState extends State<WindowHeader> {
+class _WindowHeaderState extends ConsumerState<WindowHeader> {
   final isMaximizedNotifier = ValueNotifier<bool>(false);
   final isPinNotifier = ValueNotifier<bool>(false);
 
@@ -183,7 +180,7 @@ class _WindowHeaderState extends State<WindowHeader> {
     isPinNotifier.value = await windowManager.isAlwaysOnTop();
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(Color iconColor) {
     return Row(
       children: [
         IconButton(
@@ -194,8 +191,8 @@ class _WindowHeaderState extends State<WindowHeader> {
             valueListenable: isPinNotifier,
             builder: (_, value, _) {
               return value
-                  ? const Icon(Icons.push_pin)
-                  : const Icon(Icons.push_pin_outlined);
+                  ? Icon(Icons.push_pin, color: iconColor, size: 18)
+                  : Icon(Icons.push_pin_outlined, color: iconColor, size: 18);
             },
           ),
         ),
@@ -203,7 +200,7 @@ class _WindowHeaderState extends State<WindowHeader> {
           onPressed: () {
             windowManager.minimize();
           },
-          icon: const Icon(Icons.remove),
+          icon: Icon(Icons.remove, color: iconColor, size: 18),
         ),
         IconButton(
           onPressed: () async {
@@ -213,8 +210,8 @@ class _WindowHeaderState extends State<WindowHeader> {
             valueListenable: isMaximizedNotifier,
             builder: (_, value, _) {
               return value
-                  ? const Icon(Icons.filter_none, size: 20)
-                  : const Icon(Icons.crop_square);
+                  ? Icon(Icons.filter_none, color: iconColor, size: 16)
+                  : Icon(Icons.crop_square, color: iconColor, size: 18);
             },
           ),
         ),
@@ -222,18 +219,30 @@ class _WindowHeaderState extends State<WindowHeader> {
           onPressed: () {
             appController.handleBackOrExit();
           },
-          icon: const Icon(Icons.close),
+          icon: Icon(Icons.close, color: iconColor, size: 18),
         ),
-        // const SizedBox(
-        //   width: 8,
-        // ),
       ],
     );
   }
 
+  MihomTheme get _mihomTheme {
+    final themeState = system.isDesktop
+        ? ref.watch(desktopThemeProvider)
+        : ref.watch(mobileThemeProvider);
+    final systemBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    return resolveTheme(themeState, systemBrightness);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final t = _mihomTheme;
+    final iconColor = Colors.white.withValues(alpha: 0.9);
+
+    return Container(
+      decoration: BoxDecoration(gradient: t.primaryGradient),
+      child: Material(
+      color: Colors.transparent,
       child: Stack(
         alignment: AlignmentDirectional.center,
         children: [
@@ -246,20 +255,34 @@ class _WindowHeaderState extends State<WindowHeader> {
                 _updateMaximized();
               },
               child: Container(
-                color: context.colorScheme.secondary.opacity15,
+                color: Colors.transparent,
                 alignment: Alignment.centerLeft,
                 height: kHeaderHeight,
               ),
             ),
           ),
+          // App icon on the left
+          Positioned(
+            left: 10,
+            child: SizedBox(
+              height: kHeaderHeight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset('assets/branding/icon.png', width: 22, height: 22),
+                  const SizedBox(width: 6),
+                  Text(appName, style: TextStyle(color: iconColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
           if (system.isMacOS)
-            const Text(appName)
+            const SizedBox.shrink()
           else ...[
-            Positioned(right: 0, child: _buildActions()),
+            Positioned(right: 0, child: _buildActions(iconColor)),
           ],
         ],
-      ),
-    );
+      ),      ),    );
   }
 }
 

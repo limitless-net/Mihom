@@ -1,0 +1,188 @@
+﻿  Generating the build script.
+  Compiling the build script.
+  Reading the asset graph.
+  Creating the asset graph.
+  Doing initial build cleanup.
+  Deleting 46 declared outputs which already existed on disk.
+  Updating the asset graph.
+  Building, full build because builders changed.
+  0s riverpod_generator on 454 inputs; lib/application.dart
+  5s riverpod_generator on 454 inputs: 1 no-op; spent 5s聽sdk; lib/common/android.dart
+  27s riverpod_generator on 454 inputs: 63 no-op; spent 17s聽analyzing, 5s聽sdk, 3s聽resolving; lib/database/links.dart
+  28s riverpod_generator on 454 inputs: 4 output, 135 no-op; spent 18s聽analyzing, 5s聽sdk, 3s聽resolving; lib/state.dart
+  31s riverpod_generator on 454 inputs: 5 output, 244 no-op; spent 20s聽analyzing, 5s聽sdk, 3s聽resolving, 1s聽building; lib/xboard/adapter/state/config_state.dart
+  32s riverpod_generator on 454 inputs: 14 output, 440 no-op; spent 20s聽analyzing, 5s聽sdk, 4s聽resolving, 1s聽building
+  0s freezed on 19 inputs; lib/models/app.dart
+  0s freezed on 19 inputs: 1 output; lib/models/clash_config.dart
+  1s freezed on 19 inputs: 7 output, 1 no-op; lib/models/widget.dart
+  1s freezed on 19 inputs: 9 output, 8 same, 2 no-op; spent 1s聽building
+  0s json_serializable on 473 inputs; lib/application.dart
+  4s json_serializable on 473 inputs: 1 no-op; spent 3s聽analyzing; lib/common/android.dart
+  5s json_serializable on 473 inputs: 71 no-op; spent 4s聽analyzing; lib/l10n/intl/messages_all.dart
+  7s json_serializable on 473 inputs: 98 no-op; spent 5s聽analyzing; lib/mihom/desktop/pages/desktop_settings_page.dart
+W json_serializable on lib/models/clash_config.dart:
+  Field `maxFailedTimes` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `excludeFilter` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `excludeType` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `expectedStatus` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `overrideDest` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `forceDomain` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `skipSrcAddress` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `skipDstAddress` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `skipDomain` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `port` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `forceDnsMapping` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `parsePureIp` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `overrideDest` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `autoRoute` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `dnsHijack` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `routeAddress` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `geoipCode` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `preferH3` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `useHosts` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `useSystemHosts` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `respectRules` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `defaultNameserver` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `enhancedMode` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `fakeIpRange` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `fakeIpFilter` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `nameserverPolicy` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `proxyServerNameserver` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `fallbackFilter` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `proxyGroups` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `rule` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `ruleProvider` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `subRules` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `mixedPort` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `socksPort` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `port` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `redirPort` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `tproxyPort` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `allowLan` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `logLevel` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `findProcessMode` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `findProcessMode` has conflicting `JsonKey.unknownEnumValue` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `keepAliveInterval` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `unifiedDelay` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `tcpConcurrent` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `geoXUrl` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `geodataLoader` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `proxyGroups` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `globalUa` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/clash_config.dart:
+  Field `externalController` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+  8s json_serializable on 473 inputs: 1 output, 118 no-op; spent 6s聽analyzing; lib/models/common.dart
+W json_serializable on lib/models/common.dart:
+  Field `logLevel` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/common.dart:
+  Field `payload` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `selectedMap` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `testUrl` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `mixedPort` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `allowLan` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `findProcessMode` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `logLevel` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `tcpConcurrent` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `externalController` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `unifiedDelay` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `homeDir` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `groupName` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `proxyName` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `geoType` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `geoName` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `upload` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `download` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `total` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `expire` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `subscriptionInfo` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `vehicleType` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+W json_serializable on lib/models/core.dart:
+  Field `updateAt` has conflicting `JsonKey.name` annotations: both constructor parameter and class field have this annotation. Using constructor parameter value.
+  9s json_serializable on 473 inputs: 1 skipped, 6 output, 127 no-op; spent 7s聽analyzing; lib/models/widget.dart
+  10s json_serializable on 473 inputs: 1 skipped, 6 output, 156 no-op; spent 8s聽analyzing; lib/ui_demo/mihom_theme.dart
+  11s json_serializable on 473 inputs: 1 skipped, 6 output, 195 no-op; spent 9s聽analyzing; lib/views/profiles/profiles.dart
+  12s json_serializable on 473 inputs: 1 skipped, 6 output, 266 no-op; spent 10s聽analyzing, 1s聽building; lib/xboard/config/models/config_entry.dart
+  13s json_serializable on 473 inputs: 2 skipped, 14 output, 358 no-op; spent 11s聽analyzing, 1s聽building; lib/xboard/features/online_support/online_support.dart
+  14s json_serializable on 473 inputs: 2 skipped, 14 output, 441 no-op; spent 11s聽analyzing, 1s聽building; lib/xboard/infrastructure/network/network.dart
+  14s json_serializable on 473 inputs: 2 skipped, 14 output, 457 no-op; spent 12s聽analyzing, 1s聽building
+  0s drift_dev on 1892 inputs; lib/application.dart
+  1s drift_dev on 1892 inputs: 1 skipped, 157 output; lib/ui_demo/desktop/pages/desktop_settings_page.dart
+  2s drift_dev on 1892 inputs: 2 skipped, 506 output, 6 no-op; lib/common/request.dart
+  4s drift_dev on 1892 inputs: 2 skipped, 526 output, 8 no-op; spent 2s聽analyzing, 1s聽building; lib/database/links.dart
+  5s drift_dev on 1892 inputs: 3 skipped, 697 output, 22 no-op; spent 3s聽analyzing, 2s聽building; lib/widgets/subscription_info_view.dart
+  6s drift_dev on 1892 inputs: 66 skipped, 893 output, 112 no-op; spent 3s聽analyzing, 3s聽building; lib/database/database.dart.types.temp.dart
+  7s drift_dev on 1892 inputs: 234 skipped, 893 output, 280 no-op; spent 3s聽building, 3s聽analyzing; lib/widgets/grid.dart.types.temp.dart
+  8s drift_dev on 1892 inputs: 478 skipped, 893 output, 521 no-op; spent 4s聽building, 4s聽analyzing
+  0s source_gen:combining_builder on 112 inputs; lib/database/database.dart
+  0s source_gen:combining_builder on 112 inputs: 24 skipped, 9 output, 16 no-op; lib/providers/config.dart.types.temp.dart
+  0s source_gen:combining_builder on 112 inputs: 57 skipped, 29 output, 26 no-op
+  Running the post build.
+  Writing the asset graph.
+  Built with build_runner in 59s; wrote 968 outputs.

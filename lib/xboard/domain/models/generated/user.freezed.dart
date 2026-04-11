@@ -33,7 +33,10 @@ mixin _$DomainUser {
  bool get remindTraffic;/// 折扣率（0-1）
  double? get discount;/// 佣金比例（0-1）
  double? get commissionRate;/// Telegram ID
- String? get telegramId;/// 元数据（存储 SDK 特有字段）
+ String? get telegramId;/// 后端用户 ID（数字）
+ int? get userId;/// 当前订阅周期 (month, quarter, half_year, year, two_year, three_year, onetime, reset)
+ String? get period;/// 用户组 ID
+ int? get groupId;/// 元数据（存储 SDK 特有字段）
  Map<String, dynamic> get metadata;
 /// Create a copy of DomainUser
 /// with the given fields replaced by the non-null parameter values.
@@ -47,16 +50,16 @@ $DomainUserCopyWith<DomainUser> get copyWith => _$DomainUserCopyWithImpl<DomainU
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DomainUser&&(identical(other.email, email) || other.email == email)&&(identical(other.uuid, uuid) || other.uuid == uuid)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.transferLimit, transferLimit) || other.transferLimit == transferLimit)&&(identical(other.uploadedBytes, uploadedBytes) || other.uploadedBytes == uploadedBytes)&&(identical(other.downloadedBytes, downloadedBytes) || other.downloadedBytes == downloadedBytes)&&(identical(other.balanceInCents, balanceInCents) || other.balanceInCents == balanceInCents)&&(identical(other.commissionBalanceInCents, commissionBalanceInCents) || other.commissionBalanceInCents == commissionBalanceInCents)&&(identical(other.expiredAt, expiredAt) || other.expiredAt == expiredAt)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.banned, banned) || other.banned == banned)&&(identical(other.remindExpire, remindExpire) || other.remindExpire == remindExpire)&&(identical(other.remindTraffic, remindTraffic) || other.remindTraffic == remindTraffic)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.telegramId, telegramId) || other.telegramId == telegramId)&&const DeepCollectionEquality().equals(other.metadata, metadata));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DomainUser&&(identical(other.email, email) || other.email == email)&&(identical(other.uuid, uuid) || other.uuid == uuid)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.transferLimit, transferLimit) || other.transferLimit == transferLimit)&&(identical(other.uploadedBytes, uploadedBytes) || other.uploadedBytes == uploadedBytes)&&(identical(other.downloadedBytes, downloadedBytes) || other.downloadedBytes == downloadedBytes)&&(identical(other.balanceInCents, balanceInCents) || other.balanceInCents == balanceInCents)&&(identical(other.commissionBalanceInCents, commissionBalanceInCents) || other.commissionBalanceInCents == commissionBalanceInCents)&&(identical(other.expiredAt, expiredAt) || other.expiredAt == expiredAt)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.banned, banned) || other.banned == banned)&&(identical(other.remindExpire, remindExpire) || other.remindExpire == remindExpire)&&(identical(other.remindTraffic, remindTraffic) || other.remindTraffic == remindTraffic)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.telegramId, telegramId) || other.telegramId == telegramId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.period, period) || other.period == period)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&const DeepCollectionEquality().equals(other.metadata, metadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,email,uuid,avatarUrl,planId,transferLimit,uploadedBytes,downloadedBytes,balanceInCents,commissionBalanceInCents,expiredAt,lastLoginAt,createdAt,banned,remindExpire,remindTraffic,discount,commissionRate,telegramId,const DeepCollectionEquality().hash(metadata)]);
+int get hashCode => Object.hashAll([runtimeType,email,uuid,avatarUrl,planId,transferLimit,uploadedBytes,downloadedBytes,balanceInCents,commissionBalanceInCents,expiredAt,lastLoginAt,createdAt,banned,remindExpire,remindTraffic,discount,commissionRate,telegramId,userId,period,groupId,const DeepCollectionEquality().hash(metadata)]);
 
 @override
 String toString() {
-  return 'DomainUser(email: $email, uuid: $uuid, avatarUrl: $avatarUrl, planId: $planId, transferLimit: $transferLimit, uploadedBytes: $uploadedBytes, downloadedBytes: $downloadedBytes, balanceInCents: $balanceInCents, commissionBalanceInCents: $commissionBalanceInCents, expiredAt: $expiredAt, lastLoginAt: $lastLoginAt, createdAt: $createdAt, banned: $banned, remindExpire: $remindExpire, remindTraffic: $remindTraffic, discount: $discount, commissionRate: $commissionRate, telegramId: $telegramId, metadata: $metadata)';
+  return 'DomainUser(email: $email, uuid: $uuid, avatarUrl: $avatarUrl, planId: $planId, transferLimit: $transferLimit, uploadedBytes: $uploadedBytes, downloadedBytes: $downloadedBytes, balanceInCents: $balanceInCents, commissionBalanceInCents: $commissionBalanceInCents, expiredAt: $expiredAt, lastLoginAt: $lastLoginAt, createdAt: $createdAt, banned: $banned, remindExpire: $remindExpire, remindTraffic: $remindTraffic, discount: $discount, commissionRate: $commissionRate, telegramId: $telegramId, userId: $userId, period: $period, groupId: $groupId, metadata: $metadata)';
 }
 
 
@@ -67,7 +70,7 @@ abstract mixin class $DomainUserCopyWith<$Res>  {
   factory $DomainUserCopyWith(DomainUser value, $Res Function(DomainUser) _then) = _$DomainUserCopyWithImpl;
 @useResult
 $Res call({
- String email, String uuid, String avatarUrl, int? planId, int transferLimit, int uploadedBytes, int downloadedBytes, int balanceInCents, int commissionBalanceInCents, DateTime? expiredAt, DateTime? lastLoginAt, DateTime? createdAt, bool banned, bool remindExpire, bool remindTraffic, double? discount, double? commissionRate, String? telegramId, Map<String, dynamic> metadata
+ String email, String uuid, String avatarUrl, int? planId, int transferLimit, int uploadedBytes, int downloadedBytes, int balanceInCents, int commissionBalanceInCents, DateTime? expiredAt, DateTime? lastLoginAt, DateTime? createdAt, bool banned, bool remindExpire, bool remindTraffic, double? discount, double? commissionRate, String? telegramId, int? userId, String? period, int? groupId, Map<String, dynamic> metadata
 });
 
 
@@ -84,7 +87,7 @@ class _$DomainUserCopyWithImpl<$Res>
 
 /// Create a copy of DomainUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? email = null,Object? uuid = null,Object? avatarUrl = null,Object? planId = freezed,Object? transferLimit = null,Object? uploadedBytes = null,Object? downloadedBytes = null,Object? balanceInCents = null,Object? commissionBalanceInCents = null,Object? expiredAt = freezed,Object? lastLoginAt = freezed,Object? createdAt = freezed,Object? banned = null,Object? remindExpire = null,Object? remindTraffic = null,Object? discount = freezed,Object? commissionRate = freezed,Object? telegramId = freezed,Object? metadata = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? email = null,Object? uuid = null,Object? avatarUrl = null,Object? planId = freezed,Object? transferLimit = null,Object? uploadedBytes = null,Object? downloadedBytes = null,Object? balanceInCents = null,Object? commissionBalanceInCents = null,Object? expiredAt = freezed,Object? lastLoginAt = freezed,Object? createdAt = freezed,Object? banned = null,Object? remindExpire = null,Object? remindTraffic = null,Object? discount = freezed,Object? commissionRate = freezed,Object? telegramId = freezed,Object? userId = freezed,Object? period = freezed,Object? groupId = freezed,Object? metadata = null,}) {
   return _then(_self.copyWith(
 email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,uuid: null == uuid ? _self.uuid : uuid // ignore: cast_nullable_to_non_nullable
@@ -104,7 +107,10 @@ as bool,remindTraffic: null == remindTraffic ? _self.remindTraffic : remindTraff
 as bool,discount: freezed == discount ? _self.discount : discount // ignore: cast_nullable_to_non_nullable
 as double?,commissionRate: freezed == commissionRate ? _self.commissionRate : commissionRate // ignore: cast_nullable_to_non_nullable
 as double?,telegramId: freezed == telegramId ? _self.telegramId : telegramId // ignore: cast_nullable_to_non_nullable
-as String?,metadata: null == metadata ? _self.metadata : metadata // ignore: cast_nullable_to_non_nullable
+as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as int?,period: freezed == period ? _self.period : period // ignore: cast_nullable_to_non_nullable
+as String?,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as int?,metadata: null == metadata ? _self.metadata : metadata // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
   ));
 }
@@ -190,10 +196,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String email,  String uuid,  String avatarUrl,  int? planId,  int transferLimit,  int uploadedBytes,  int downloadedBytes,  int balanceInCents,  int commissionBalanceInCents,  DateTime? expiredAt,  DateTime? lastLoginAt,  DateTime? createdAt,  bool banned,  bool remindExpire,  bool remindTraffic,  double? discount,  double? commissionRate,  String? telegramId,  Map<String, dynamic> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String email,  String uuid,  String avatarUrl,  int? planId,  int transferLimit,  int uploadedBytes,  int downloadedBytes,  int balanceInCents,  int commissionBalanceInCents,  DateTime? expiredAt,  DateTime? lastLoginAt,  DateTime? createdAt,  bool banned,  bool remindExpire,  bool remindTraffic,  double? discount,  double? commissionRate,  String? telegramId,  int? userId,  String? period,  int? groupId,  Map<String, dynamic> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DomainUser() when $default != null:
-return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transferLimit,_that.uploadedBytes,_that.downloadedBytes,_that.balanceInCents,_that.commissionBalanceInCents,_that.expiredAt,_that.lastLoginAt,_that.createdAt,_that.banned,_that.remindExpire,_that.remindTraffic,_that.discount,_that.commissionRate,_that.telegramId,_that.metadata);case _:
+return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transferLimit,_that.uploadedBytes,_that.downloadedBytes,_that.balanceInCents,_that.commissionBalanceInCents,_that.expiredAt,_that.lastLoginAt,_that.createdAt,_that.banned,_that.remindExpire,_that.remindTraffic,_that.discount,_that.commissionRate,_that.telegramId,_that.userId,_that.period,_that.groupId,_that.metadata);case _:
   return orElse();
 
 }
@@ -211,10 +217,10 @@ return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transf
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String email,  String uuid,  String avatarUrl,  int? planId,  int transferLimit,  int uploadedBytes,  int downloadedBytes,  int balanceInCents,  int commissionBalanceInCents,  DateTime? expiredAt,  DateTime? lastLoginAt,  DateTime? createdAt,  bool banned,  bool remindExpire,  bool remindTraffic,  double? discount,  double? commissionRate,  String? telegramId,  Map<String, dynamic> metadata)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String email,  String uuid,  String avatarUrl,  int? planId,  int transferLimit,  int uploadedBytes,  int downloadedBytes,  int balanceInCents,  int commissionBalanceInCents,  DateTime? expiredAt,  DateTime? lastLoginAt,  DateTime? createdAt,  bool banned,  bool remindExpire,  bool remindTraffic,  double? discount,  double? commissionRate,  String? telegramId,  int? userId,  String? period,  int? groupId,  Map<String, dynamic> metadata)  $default,) {final _that = this;
 switch (_that) {
 case _DomainUser():
-return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transferLimit,_that.uploadedBytes,_that.downloadedBytes,_that.balanceInCents,_that.commissionBalanceInCents,_that.expiredAt,_that.lastLoginAt,_that.createdAt,_that.banned,_that.remindExpire,_that.remindTraffic,_that.discount,_that.commissionRate,_that.telegramId,_that.metadata);case _:
+return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transferLimit,_that.uploadedBytes,_that.downloadedBytes,_that.balanceInCents,_that.commissionBalanceInCents,_that.expiredAt,_that.lastLoginAt,_that.createdAt,_that.banned,_that.remindExpire,_that.remindTraffic,_that.discount,_that.commissionRate,_that.telegramId,_that.userId,_that.period,_that.groupId,_that.metadata);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -231,10 +237,10 @@ return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transf
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String email,  String uuid,  String avatarUrl,  int? planId,  int transferLimit,  int uploadedBytes,  int downloadedBytes,  int balanceInCents,  int commissionBalanceInCents,  DateTime? expiredAt,  DateTime? lastLoginAt,  DateTime? createdAt,  bool banned,  bool remindExpire,  bool remindTraffic,  double? discount,  double? commissionRate,  String? telegramId,  Map<String, dynamic> metadata)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String email,  String uuid,  String avatarUrl,  int? planId,  int transferLimit,  int uploadedBytes,  int downloadedBytes,  int balanceInCents,  int commissionBalanceInCents,  DateTime? expiredAt,  DateTime? lastLoginAt,  DateTime? createdAt,  bool banned,  bool remindExpire,  bool remindTraffic,  double? discount,  double? commissionRate,  String? telegramId,  int? userId,  String? period,  int? groupId,  Map<String, dynamic> metadata)?  $default,) {final _that = this;
 switch (_that) {
 case _DomainUser() when $default != null:
-return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transferLimit,_that.uploadedBytes,_that.downloadedBytes,_that.balanceInCents,_that.commissionBalanceInCents,_that.expiredAt,_that.lastLoginAt,_that.createdAt,_that.banned,_that.remindExpire,_that.remindTraffic,_that.discount,_that.commissionRate,_that.telegramId,_that.metadata);case _:
+return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transferLimit,_that.uploadedBytes,_that.downloadedBytes,_that.balanceInCents,_that.commissionBalanceInCents,_that.expiredAt,_that.lastLoginAt,_that.createdAt,_that.banned,_that.remindExpire,_that.remindTraffic,_that.discount,_that.commissionRate,_that.telegramId,_that.userId,_that.period,_that.groupId,_that.metadata);case _:
   return null;
 
 }
@@ -246,7 +252,7 @@ return $default(_that.email,_that.uuid,_that.avatarUrl,_that.planId,_that.transf
 @JsonSerializable()
 
 class _DomainUser extends DomainUser {
-  const _DomainUser({required this.email, required this.uuid, required this.avatarUrl, this.planId, required this.transferLimit, required this.uploadedBytes, required this.downloadedBytes, required this.balanceInCents, required this.commissionBalanceInCents, this.expiredAt, this.lastLoginAt, this.createdAt, this.banned = false, this.remindExpire = true, this.remindTraffic = true, this.discount, this.commissionRate, this.telegramId, final  Map<String, dynamic> metadata = const {}}): _metadata = metadata,super._();
+  const _DomainUser({required this.email, required this.uuid, required this.avatarUrl, this.planId, required this.transferLimit, required this.uploadedBytes, required this.downloadedBytes, required this.balanceInCents, required this.commissionBalanceInCents, this.expiredAt, this.lastLoginAt, this.createdAt, this.banned = false, this.remindExpire = true, this.remindTraffic = true, this.discount, this.commissionRate, this.telegramId, this.userId, this.period, this.groupId, final  Map<String, dynamic> metadata = const {}}): _metadata = metadata,super._();
   factory _DomainUser.fromJson(Map<String, dynamic> json) => _$DomainUserFromJson(json);
 
 /// 用户邮箱（唯一标识）
@@ -285,6 +291,12 @@ class _DomainUser extends DomainUser {
 @override final  double? commissionRate;
 /// Telegram ID
 @override final  String? telegramId;
+/// 后端用户 ID（数字）
+@override final  int? userId;
+/// 当前订阅周期 (month, quarter, half_year, year, two_year, three_year, onetime, reset)
+@override final  String? period;
+/// 用户组 ID
+@override final  int? groupId;
 /// 元数据（存储 SDK 特有字段）
  final  Map<String, dynamic> _metadata;
 /// 元数据（存储 SDK 特有字段）
@@ -308,16 +320,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DomainUser&&(identical(other.email, email) || other.email == email)&&(identical(other.uuid, uuid) || other.uuid == uuid)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.transferLimit, transferLimit) || other.transferLimit == transferLimit)&&(identical(other.uploadedBytes, uploadedBytes) || other.uploadedBytes == uploadedBytes)&&(identical(other.downloadedBytes, downloadedBytes) || other.downloadedBytes == downloadedBytes)&&(identical(other.balanceInCents, balanceInCents) || other.balanceInCents == balanceInCents)&&(identical(other.commissionBalanceInCents, commissionBalanceInCents) || other.commissionBalanceInCents == commissionBalanceInCents)&&(identical(other.expiredAt, expiredAt) || other.expiredAt == expiredAt)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.banned, banned) || other.banned == banned)&&(identical(other.remindExpire, remindExpire) || other.remindExpire == remindExpire)&&(identical(other.remindTraffic, remindTraffic) || other.remindTraffic == remindTraffic)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.telegramId, telegramId) || other.telegramId == telegramId)&&const DeepCollectionEquality().equals(other._metadata, _metadata));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DomainUser&&(identical(other.email, email) || other.email == email)&&(identical(other.uuid, uuid) || other.uuid == uuid)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.transferLimit, transferLimit) || other.transferLimit == transferLimit)&&(identical(other.uploadedBytes, uploadedBytes) || other.uploadedBytes == uploadedBytes)&&(identical(other.downloadedBytes, downloadedBytes) || other.downloadedBytes == downloadedBytes)&&(identical(other.balanceInCents, balanceInCents) || other.balanceInCents == balanceInCents)&&(identical(other.commissionBalanceInCents, commissionBalanceInCents) || other.commissionBalanceInCents == commissionBalanceInCents)&&(identical(other.expiredAt, expiredAt) || other.expiredAt == expiredAt)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.banned, banned) || other.banned == banned)&&(identical(other.remindExpire, remindExpire) || other.remindExpire == remindExpire)&&(identical(other.remindTraffic, remindTraffic) || other.remindTraffic == remindTraffic)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.commissionRate, commissionRate) || other.commissionRate == commissionRate)&&(identical(other.telegramId, telegramId) || other.telegramId == telegramId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.period, period) || other.period == period)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&const DeepCollectionEquality().equals(other._metadata, _metadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,email,uuid,avatarUrl,planId,transferLimit,uploadedBytes,downloadedBytes,balanceInCents,commissionBalanceInCents,expiredAt,lastLoginAt,createdAt,banned,remindExpire,remindTraffic,discount,commissionRate,telegramId,const DeepCollectionEquality().hash(_metadata)]);
+int get hashCode => Object.hashAll([runtimeType,email,uuid,avatarUrl,planId,transferLimit,uploadedBytes,downloadedBytes,balanceInCents,commissionBalanceInCents,expiredAt,lastLoginAt,createdAt,banned,remindExpire,remindTraffic,discount,commissionRate,telegramId,userId,period,groupId,const DeepCollectionEquality().hash(_metadata)]);
 
 @override
 String toString() {
-  return 'DomainUser(email: $email, uuid: $uuid, avatarUrl: $avatarUrl, planId: $planId, transferLimit: $transferLimit, uploadedBytes: $uploadedBytes, downloadedBytes: $downloadedBytes, balanceInCents: $balanceInCents, commissionBalanceInCents: $commissionBalanceInCents, expiredAt: $expiredAt, lastLoginAt: $lastLoginAt, createdAt: $createdAt, banned: $banned, remindExpire: $remindExpire, remindTraffic: $remindTraffic, discount: $discount, commissionRate: $commissionRate, telegramId: $telegramId, metadata: $metadata)';
+  return 'DomainUser(email: $email, uuid: $uuid, avatarUrl: $avatarUrl, planId: $planId, transferLimit: $transferLimit, uploadedBytes: $uploadedBytes, downloadedBytes: $downloadedBytes, balanceInCents: $balanceInCents, commissionBalanceInCents: $commissionBalanceInCents, expiredAt: $expiredAt, lastLoginAt: $lastLoginAt, createdAt: $createdAt, banned: $banned, remindExpire: $remindExpire, remindTraffic: $remindTraffic, discount: $discount, commissionRate: $commissionRate, telegramId: $telegramId, userId: $userId, period: $period, groupId: $groupId, metadata: $metadata)';
 }
 
 
@@ -328,7 +340,7 @@ abstract mixin class _$DomainUserCopyWith<$Res> implements $DomainUserCopyWith<$
   factory _$DomainUserCopyWith(_DomainUser value, $Res Function(_DomainUser) _then) = __$DomainUserCopyWithImpl;
 @override @useResult
 $Res call({
- String email, String uuid, String avatarUrl, int? planId, int transferLimit, int uploadedBytes, int downloadedBytes, int balanceInCents, int commissionBalanceInCents, DateTime? expiredAt, DateTime? lastLoginAt, DateTime? createdAt, bool banned, bool remindExpire, bool remindTraffic, double? discount, double? commissionRate, String? telegramId, Map<String, dynamic> metadata
+ String email, String uuid, String avatarUrl, int? planId, int transferLimit, int uploadedBytes, int downloadedBytes, int balanceInCents, int commissionBalanceInCents, DateTime? expiredAt, DateTime? lastLoginAt, DateTime? createdAt, bool banned, bool remindExpire, bool remindTraffic, double? discount, double? commissionRate, String? telegramId, int? userId, String? period, int? groupId, Map<String, dynamic> metadata
 });
 
 
@@ -345,7 +357,7 @@ class __$DomainUserCopyWithImpl<$Res>
 
 /// Create a copy of DomainUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? email = null,Object? uuid = null,Object? avatarUrl = null,Object? planId = freezed,Object? transferLimit = null,Object? uploadedBytes = null,Object? downloadedBytes = null,Object? balanceInCents = null,Object? commissionBalanceInCents = null,Object? expiredAt = freezed,Object? lastLoginAt = freezed,Object? createdAt = freezed,Object? banned = null,Object? remindExpire = null,Object? remindTraffic = null,Object? discount = freezed,Object? commissionRate = freezed,Object? telegramId = freezed,Object? metadata = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? email = null,Object? uuid = null,Object? avatarUrl = null,Object? planId = freezed,Object? transferLimit = null,Object? uploadedBytes = null,Object? downloadedBytes = null,Object? balanceInCents = null,Object? commissionBalanceInCents = null,Object? expiredAt = freezed,Object? lastLoginAt = freezed,Object? createdAt = freezed,Object? banned = null,Object? remindExpire = null,Object? remindTraffic = null,Object? discount = freezed,Object? commissionRate = freezed,Object? telegramId = freezed,Object? userId = freezed,Object? period = freezed,Object? groupId = freezed,Object? metadata = null,}) {
   return _then(_DomainUser(
 email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,uuid: null == uuid ? _self.uuid : uuid // ignore: cast_nullable_to_non_nullable
@@ -365,7 +377,10 @@ as bool,remindTraffic: null == remindTraffic ? _self.remindTraffic : remindTraff
 as bool,discount: freezed == discount ? _self.discount : discount // ignore: cast_nullable_to_non_nullable
 as double?,commissionRate: freezed == commissionRate ? _self.commissionRate : commissionRate // ignore: cast_nullable_to_non_nullable
 as double?,telegramId: freezed == telegramId ? _self.telegramId : telegramId // ignore: cast_nullable_to_non_nullable
-as String?,metadata: null == metadata ? _self._metadata : metadata // ignore: cast_nullable_to_non_nullable
+as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as int?,period: freezed == period ? _self.period : period // ignore: cast_nullable_to_non_nullable
+as String?,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as int?,metadata: null == metadata ? _self._metadata : metadata // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
   ));
 }

@@ -64,6 +64,15 @@ abstract class DomainUser with _$DomainUser {
     /// Telegram ID
     String? telegramId,
     
+    /// 后端用户 ID（数字）
+    int? userId,
+    
+    /// 当前订阅周期 (month, quarter, half_year, year, two_year, three_year, onetime, reset)
+    String? period,
+    
+    /// 用户组 ID
+    int? groupId,
+    
     /// 元数据（存储 SDK 特有字段）
     @Default({}) Map<String, dynamic> metadata,
   }) = _DomainUser;

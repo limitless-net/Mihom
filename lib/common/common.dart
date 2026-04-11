@@ -1,3 +1,4 @@
+export 'android.dart';
 export 'app_localizations.dart';
 export 'cache.dart';
 export 'color.dart';

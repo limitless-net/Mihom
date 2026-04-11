@@ -48,7 +48,7 @@ extension InitControllerExt on AppController {
     };
     updateTray();
     autoUpdateProfiles();
-    autoCheckUpdate();
+    // autoCheckUpdate(); // 已禁用 GitHub FlClash 更新检查，使用 XBoard 自有更新检查
     autoLaunch?.updateStatus(_ref.read(appSettingProvider).autoLaunch);
     if (!_ref.read(appSettingProvider).silentLaunch) {
       window?.show();
@@ -58,6 +58,7 @@ extension InitControllerExt on AppController {
     await _handleFailedPreference();
     await _handlerDisclaimer();
     await _showCrashlyticsTip();
+    await android?.init();
     await _connectCore();
     await _initCore();
     await _initStatus();
@@ -105,20 +106,7 @@ extension InitControllerExt on AppController {
   }
 
   Future<void> _showCrashlyticsTip() async {
-    if (!system.isAndroid) {
-      return;
-    }
-    if (_ref.read(appSettingProvider.select((state) => state.crashlyticsTip))) {
-      return;
-    }
-    await globalState.showMessage(
-      title: appLocalizations.dataCollectionTip,
-      cancelable: false,
-      message: TextSpan(text: appLocalizations.dataCollectionContent),
-    );
-    _ref
-        .read(appSettingProvider.notifier)
-        .update((state) => state.copyWith(crashlyticsTip: true));
+    return; // disabled for custom client
   }
 
   Future<void> _handlerDisclaimer() async {
@@ -640,6 +628,86 @@ extension SetupControllerExt on AppController {
       updateCurrentGroupName(GroupName.GLOBAL.name);
     }
     addCheckIp();
+    // 切换模式后刷新代理组，确保 UI 展示最新节点数据
+    updateGroups();
+    // 切换模式后重新拉取订阅配置
+    final currentProfile = _ref.read(currentProfileProvider);
+    if (currentProfile != null) {
+      updateProfile(currentProfile);
+    }
+  }
+
+  /// Auto-select a valid proxy node for GLOBAL group and apply to core
+  Future<void> _autoSelectGlobalProxy() async {
+    final groups = _ref.read(groupsProvider);
+    if (groups.isEmpty) return;
+    final globalGroup = groups.getGroup(GroupName.GLOBAL.name);
+    if (globalGroup == null || globalGroup.all.isEmpty) return;
+    // If there's already a valid selection in the core, keep it
+    final profile = _ref.read(currentProfileProvider);
+    final currentSelection = profile?.selectedMap[GroupName.GLOBAL.name];
+    if (currentSelection != null &&
+        currentSelection.isNotEmpty &&
+        !_isInfoProxy(currentSelection) &&
+        globalGroup.all.any((p) => p.name == currentSelection)) {
+      // Selection exists in profile but core might not know — apply it
+      await coreController.changeProxy(
+        ChangeProxyParams(
+          groupName: GroupName.GLOBAL.name,
+          proxyName: currentSelection,
+        ),
+      );
+      return;
+    }
+    // Find first connectable proxy (skip DIRECT/REJECT/info nodes)
+    for (final proxy in globalGroup.all) {
+      if (_isInfoProxy(proxy.name)) continue;
+      updateCurrentSelectedMap(GroupName.GLOBAL.name, proxy.name);
+      await coreController.changeProxy(
+        ChangeProxyParams(
+          groupName: GroupName.GLOBAL.name,
+          proxyName: proxy.name,
+        ),
+      );
+      return;
+    }
+  }
+
+  /// Whether a proxy name is non-connectable (DIRECT/REJECT/subscription info)
+  static bool _isInfoProxy(String name) {
+    final lower = name.toLowerCase();
+    return lower == 'direct' ||
+        lower == 'reject' ||
+        lower.contains('剩余流量') ||
+        lower.contains('套餐到期') ||
+        lower.contains('距离下次重置') ||
+        lower.contains('到期') ||
+        lower.contains('expire') ||
+        lower.contains('traffic') ||
+        lower.contains('残余') ||
+        lower.contains('官网') ||
+        lower.contains('重置剩余') ||
+        lower.contains('订阅链接') ||
+        lower.contains('更新订阅') ||
+        lower.contains('剩余') ||
+        lower.contains('过期') ||
+        lower.contains('到期时间') ||
+        lower.contains('有效期') ||
+        lower.contains('续费') ||
+        lower.contains('购买') ||
+        lower.contains('充值') ||
+        lower.contains('邀请') ||
+        lower.contains('tg群') ||
+        lower.contains('telegram') ||
+        lower.contains('频道') ||
+        lower.contains('客服') ||
+        lower.contains('公告') ||
+        lower.contains('网址') ||
+        lower.contains('官方') ||
+        lower.contains('教程') ||
+        lower.contains('使用说明') ||
+        RegExp(r'\d+(\.\d+)?\s*(gb|tb|mb|pb)', caseSensitive: false).hasMatch(name) ||
+        RegExp(r'\d+%').hasMatch(name);
   }
 
   void autoApplyProfile() {
@@ -738,6 +806,10 @@ extension SetupControllerExt on AppController {
       profile = nextProfile;
       _ref.read(profilesProvider.notifier).put(nextProfile);
     }
+    if (profile == null) {
+      commonPrint.log('setup: no active profile, skipping');
+      return;
+    }
     final patchConfig = _ref.read(patchClashConfigProvider);
     final res = await _requestAdmin(patchConfig.tun.enable);
     if (res.isError) {
@@ -783,19 +855,24 @@ extension CoreControllerExt on AppController {
 
   Future<void> _connectCore() async {
     _ref.read(coreStatusProvider.notifier).value = CoreStatus.connecting;
-    final result = await Future.wait([
-      coreController.preload(),
-      Future.delayed(Duration(milliseconds: 300)),
-    ]);
-    final String message = result[0];
-    if (message.isNotEmpty) {
-      _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
-      if (_context.mounted) {
-        _context.showNotifier(message);
+    try {
+      final result = await Future.wait([
+        coreController.preload(),
+        Future.delayed(Duration(milliseconds: 300)),
+      ]);
+      final String message = result[0];
+      if (message.isNotEmpty) {
+        _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
+        if (_context.mounted) {
+          _context.showNotifier(message);
+        }
+        return;
       }
-      return;
+      _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
+    } catch (e) {
+      commonPrint.log('Core connect failed: $e', logLevel: LogLevel.warning);
+      _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
     }
-    _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
   }
 
   Future<Result<bool>> _requestAdmin(bool enableTun) async {

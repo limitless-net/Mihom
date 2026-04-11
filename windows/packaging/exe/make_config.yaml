@@ -1,11 +1,11 @@
 script_template: inno_setup.iss
 app_id: 728B3532-C74B-4870-9068-BE70FE12A3E6
-app_name: Flclash
-publisher: chen08209
+app_name: 无界
+publisher: Wujie
 publisher_url: https://github.com/chen08209/FlClash
-display_name: Flclash
-executable_name: Flclash.exe
-output_base_file_name: Flclash.exe
+display_name: 无界
+executable_name: Wujie.exe
+output_base_file_name: Wujie.exe
 setup_icon_file: ..\windows\runner\resources\app_icon.ico
 locales:
   - lang: zh

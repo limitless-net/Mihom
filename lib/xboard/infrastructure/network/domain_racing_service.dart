@@ -130,10 +130,10 @@ class DomainRacingService {
             );
             completer.complete(racingResult);
 
-            // 注释掉取消逻辑，让所有测试都完成，方便查看每个域名+代理的连通状况
-            // for (int j = 0; j < cancelTokens.length; j++) {
-            //   if (j != i) cancelTokens[j].cancel();
-            // }
+            // 通知其他测试不再使用结果（已发出的请求会跑完并记日志，只是不再采纳）
+            for (int j = 0; j < cancelTokens.length; j++) {
+              if (j != i) cancelTokens[j].cancel();
+            }
           } else {
             completedCount++;
             if (result.error != null) {
@@ -151,7 +151,7 @@ class DomainRacingService {
           }
         }).catchError((e) {
           completedCount++;
-          errors.add('域名#$i异常: $e');
+          errors.add('域名#$i异常: ${translateError(e)}');
 
           if (completedCount == futures.length && !completer.isCompleted) {
             _logger.warning('[域名竞速] 所有域名测试都失败: ${errors.join('; ')}');
@@ -222,8 +222,12 @@ class DomainRacingService {
           stopwatch.stop();
 
           if (cancelToken.isCancelled) {
+            // 已被取消但请求已完成，仍记录真实结果供调试
+            final relayOk = relayResponse.isSuccess;
+            _logger.info(
+                '[域名竞速] ⏭️ 域名 #$index ($domain) [Relay: $proxyUrl] 已取消，实际结果: ${relayOk ? '成功' : 'HTTP ${relayResponse.statusCode}'}，用时: ${stopwatch.elapsedMilliseconds}ms');
             return DomainTestResult.failure(
-                domain, '测试被取消', stopwatch.elapsedMilliseconds,
+                domain, '测试被取消（实际${relayOk ? '成功' : '失败'}）', stopwatch.elapsedMilliseconds,
                 useProxy: true, proxyUrl: proxyUrl);
           }
 
@@ -247,7 +251,7 @@ class DomainRacingService {
         } catch (e) {
           stopwatch.stop();
           return DomainTestResult.failure(
-              domain, '中继连接失败: $e', stopwatch.elapsedMilliseconds,
+              domain, '中继连接失败: ${translateError(e)}', stopwatch.elapsedMilliseconds,
               useProxy: true, proxyUrl: proxyUrl);
         }
       }
@@ -328,9 +332,13 @@ class DomainRacingService {
       stopwatch.stop();
 
       if (cancelToken.isCancelled) {
-        _logger.info('[域名竞速] 域名 #$index 测试完成但已被取消');
+        // 已被取消但请求已完成，仍记录真实结果供调试
+        final realOk = response.statusCode >= 200 && response.statusCode < 400;
+        final connectionType = useProxy ? '代理: $proxyUrl' : '直连';
+        _logger.info(
+            '[域名竞速] ⏭️ 域名 #$index ($domain) [$connectionType] 已取消，实际结果: ${realOk ? '成功' : 'HTTP ${response.statusCode}'}，用时: ${stopwatch.elapsedMilliseconds}ms');
         return DomainTestResult.failure(
-            domain, '测试被取消', stopwatch.elapsedMilliseconds, useProxy: useProxy, proxyUrl: proxyUrl);
+            domain, '测试被取消（实际${realOk ? '成功' : '失败'}）', stopwatch.elapsedMilliseconds, useProxy: useProxy, proxyUrl: proxyUrl);
       }
 
       if (response.statusCode >= 200 && response.statusCode < 400) {
@@ -351,14 +359,14 @@ class DomainRacingService {
     } catch (e) {
       stopwatch.stop();
       if (cancelToken.isCancelled) {
-        _logger.info('[域名竞速] 域名 #$index ($domain) 被正常取消');
+        _logger.info('[域名竞速] ⏭️ 域名 #$index ($domain) 已取消，异常: ${translateError(e)}，用时: ${stopwatch.elapsedMilliseconds}ms');
         return DomainTestResult.failure(
-            domain, '测试被取消', stopwatch.elapsedMilliseconds, useProxy: useProxy, proxyUrl: proxyUrl);
+            domain, '测试被取消（异常: ${translateError(e)}）', stopwatch.elapsedMilliseconds, useProxy: useProxy, proxyUrl: proxyUrl);
       }
 
-      _logger.info('[域名竞速] 域名 #$index ($domain) 测试失败: $e');
+      _logger.info('[域名竞速] 域名 #$index ($domain) 测试失败: ${translateError(e)}');
       return DomainTestResult.failure(
-          domain, '连接失败: $e', stopwatch.elapsedMilliseconds, useProxy: useProxy, proxyUrl: proxyUrl);
+          domain, '连接失败: ${translateError(e)}', stopwatch.elapsedMilliseconds, useProxy: useProxy, proxyUrl: proxyUrl);
     }
   }
 

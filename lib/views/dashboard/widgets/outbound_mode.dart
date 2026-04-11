@@ -54,11 +54,12 @@ class OutboundMode extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           for (final item in Mode.values)
+                            if (item != Mode.direct)
                             ListItem.radio(
                               horizontalTitleGap: 8,
                               tileTitleAlignment: ListTileTitleAlignment.center,
                               minTileHeight: min(
-                                maxHeight / 3,
+                                maxHeight / 2,
                                 globalState.measure.bodyMediumHeight + 16,
                               ),
                               minVerticalPadding: 0,

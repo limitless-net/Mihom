@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart';
 import '../core/config_settings.dart';
@@ -108,28 +108,49 @@ abstract class IHttpClient {
 }
 
 /// 简单的HTTP客户端实现
+///
+/// 用于启动时获取远程配置。此时 proxy/VPN 尚未初始化，
+/// 必须绕过全局 FlClashHttpOverrides 直连获取。
 class SimpleHttpClient implements IHttpClient {
   @override
   Future<String?> getString(String url, {Duration? timeout}) async {
+    final t = timeout ?? const Duration(seconds: 10);
     HttpClient? client;
     try {
-      client = HttpClient();
-      client.badCertificateCallback = (cert, host, port) => true;
-      client.connectionTimeout = timeout ?? const Duration(seconds: 10);
+      // 绕过全局 FlClashHttpOverrides，直接创建纯净 HttpClient
+      client = _NoOpHttpOverrides.createCleanClient();
+      client.connectionTimeout = t;
+      client.badCertificateCallback = (_, _, _) => true;
+      client.findProxy = (_) => 'DIRECT';
 
       final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close();
+      request.headers.set(HttpHeaders.acceptHeader, '*/*');
 
+      final response = await request.close().timeout(t);
       if (response.statusCode == 200) {
-        return await response.transform(utf8.decoder).join();
+        final body = await response.transform(utf8.decoder).join();
+        _logger.info('[SimpleHttp] 获取成功: $url (${body.length}B)');
+        return body;
       }
-
+      _logger.error('[SimpleHttp] HTTP ${response.statusCode}: $url');
       return null;
     } catch (e) {
+      _logger.error('[SimpleHttp] 获取失败: $url', e);
       return null;
     } finally {
       client?.close();
     }
+  }
+}
+
+/// 绕过全局 FlClashHttpOverrides 的工具类
+class _NoOpHttpOverrides extends HttpOverrides {
+  /// 在无 Override 的环境中创建纯净 HttpClient
+  static HttpClient createCleanClient() {
+    return HttpOverrides.runWithHttpOverrides(
+      () => HttpClient(),
+      _NoOpHttpOverrides(),
+    )!;
   }
 }
 
@@ -271,38 +292,21 @@ class RemoteConfigSource {
     this.timeout = const Duration(seconds: 10),
   });
 
-  /// 从配置源获取数据
+  /// 从配置源获取数据（使用简单直连，启动阶段无代理）
   Future<ConfigResult<Map<String, dynamic>>> fetch() async {
     try {
-      final client = HttpClient();
-      client.badCertificateCallback = (cert, host, port) => true;
-      client.connectionTimeout = timeout;
+      final httpClient = SimpleHttpClient();
+      final responseBody = await httpClient.getString(
+        url,
+        timeout: timeout,
+      );
 
-      final uri = Uri.parse(url);
-      final request = await client.getUrl(uri);
-      
-      // 添加请求头
-      if (headers != null) {
-        headers!.forEach((key, value) {
-          request.headers.add(key, value);
-        });
+      if (responseBody == null) {
+        return ConfigResult.failure('HTTP request failed', name);
       }
 
-      final response = await request.close();
-      
-      if (response.statusCode == 200) {
-        final responseBody = await response.transform(utf8.decoder).join();
-        final data = json.decode(responseBody) as Map<String, dynamic>;
-        
-        client.close();
-        return ConfigResult.success(data, name);
-      } else {
-        client.close();
-        return ConfigResult.failure(
-          'HTTP ${response.statusCode}: ${response.reasonPhrase}',
-          name,
-        );
-      }
+      final data = json.decode(responseBody) as Map<String, dynamic>;
+      return ConfigResult.success(data, name);
     } catch (e) {
       return ConfigResult.failure('Network error: $e', name);
     }
@@ -369,49 +373,52 @@ class RemoteConfigManager {
       throw Exception('没有可用的配置源');
     }
 
-    // 查找重定向和Gitee配置源
-    ConfigSource? redirectSource;
-    ConfigSource? giteeSource;
+    // 收集所有同类源
+    final redirectSources = _configSources.where((s) => s.sourceName == 'redirect').toList();
+    final giteeSources = _configSources.where((s) => s.sourceName == 'gitee').toList();
 
-    for (final source in _configSources) {
-      if (source.sourceName == 'redirect') {
-        redirectSource = source;
-      } else if (source.sourceName == 'gitee') {
-        giteeSource = source;
-      }
-    }
+    _logger.info('[RemoteConfigManager] 配置源: ${redirectSources.length} 个 redirect, ${giteeSources.length} 个 gitee');
 
-    // 并发或串行获取配置
+    // 并发获取（redirect 组和 gitee 组各自内部按顺序 fallback）
     late ConfigResult<Map<String, dynamic>> redirectResult;
     late ConfigResult<Map<String, dynamic>> giteeResult;
 
-    if (_enableConcurrentFetch && redirectSource != null && giteeSource != null) {
-      // 并发请求
+    if (_enableConcurrentFetch && redirectSources.isNotEmpty && giteeSources.isNotEmpty) {
       final results = await Future.wait([
-        _fetchWithRetry(redirectSource),
-        _fetchWithRetry(giteeSource),
+        _fetchWithFallback(redirectSources),
+        _fetchWithFallback(giteeSources),
       ]);
       redirectResult = results[0];
       giteeResult = results[1];
     } else {
-      // 串行请求
-      if (redirectSource != null) {
-        redirectResult = await _fetchWithRetry(redirectSource);
-      } else {
-        redirectResult = ConfigResult.failure('重定向配置源未注册', 'redirect');
-      }
-
-      if (giteeSource != null) {
-        giteeResult = await _fetchWithRetry(giteeSource);
-      } else {
-        giteeResult = ConfigResult.failure('Gitee配置源未注册', 'gitee');
-      }
+      redirectResult = redirectSources.isNotEmpty
+          ? await _fetchWithFallback(redirectSources)
+          : ConfigResult.failure('重定向配置源未注册', 'redirect');
+      giteeResult = giteeSources.isNotEmpty
+          ? await _fetchWithFallback(giteeSources)
+          : ConfigResult.failure('Gitee配置源未注册', 'gitee');
     }
 
     return MultiConfigResult(
       redirectResult: redirectResult,
       giteeResult: giteeResult,
     );
+  }
+
+  /// 依次尝试同类源列表，第一个成功就返回
+  Future<ConfigResult<Map<String, dynamic>>> _fetchWithFallback(
+      List<ConfigSource> sources) async {
+    for (int i = 0; i < sources.length; i++) {
+      final source = sources[i];
+      _logger.info('[RemoteConfigManager] 尝试 ${source.sourceName} 源 ${i + 1}/${sources.length}');
+      final result = await _fetchWithRetry(source);
+      if (result.isSuccess) {
+        _logger.info('[RemoteConfigManager] ${source.sourceName} 源 ${i + 1} 成功');
+        return result;
+      }
+      _logger.info('[RemoteConfigManager] ${source.sourceName} 源 ${i + 1} 失败，${i < sources.length - 1 ? '尝试下一个' : '全部失败'}');
+    }
+    return ConfigResult.failure('所有 ${sources.first.sourceName} 源都失败', sources.first.sourceName);
   }
 
   /// 只获取重定向配置源的结果

@@ -1,0 +1,15 @@
+﻿flutter : Flutter assets will be downloaded from https://storage.googleapis.com
+. Make sure you trust this source!
+所在位置 行:1 字符: 35
++ ... ation "F:\wujieVPN\Mihom"; flutter build windows --debug 2>&1 | Out-F ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Building Windows application...                                 
+LINK : fatal error LNK1168: 鏃犳硶鎵撳紑 F:\wujieVPN\Mihom\build\windows\x64\runner\D
+ebug\Wujie.exe 杩涜鍐欏叆 [F:\wujieVPN\Mihom\build\windows\x64\runner\Wujie.vcxproj
+]
+Building Windows application...                                    20.0s
+Build process failed.

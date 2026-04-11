@@ -1,6 +1,7 @@
 import 'package:fl_clash/xboard/core/core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_clash/xboard/features/online_support/providers/chat_provider.dart';
+import 'package:fl_clash/xboard/features/online_support/services/websocket_service.dart';
 import 'package:fl_clash/xboard/features/auth/auth.dart';
 
 // 初始化文件级日志器
@@ -20,6 +21,13 @@ final _logger = FileLogger('websocket_auto_connector.dart');
 /// 4. 初始化时检查当前认证状态,如果已登录则立即连接
 final webSocketAutoConnectorProvider = Provider<void>((ref) {
   final wsService = ref.watch(wsServiceProvider);
+  if (wsService == null) {
+    _logger.info(
+      'WebSocketAutoConnector',
+      'WebSocket 服务不可用，跳过自动连接',
+    );
+    return;
+  }
 
   // 监听认证状态变化
   ref.listen<UserAuthState>(
@@ -34,7 +42,7 @@ final webSocketAutoConnectorProvider = Provider<void>((ref) {
           'WebSocketAutoConnector',
           '检测到登录成功,自动启动 WebSocket 连接',
         );
-        wsService.connect();
+        wsService?.connect();
       }
       // 从已登录到未登录 → 断开 WebSocket
       else if (wasAuthenticated && !isAuthenticated) {
@@ -42,7 +50,7 @@ final webSocketAutoConnectorProvider = Provider<void>((ref) {
           'WebSocketAutoConnector',
           '检测到登出,自动断开 WebSocket 连接',
         );
-        wsService.dispose();
+        wsService?.dispose();
       }
     },
   );
@@ -56,7 +64,7 @@ final webSocketAutoConnectorProvider = Provider<void>((ref) {
       '初始化检测到已登录状态,启动 WebSocket 连接',
     );
     // 使用 Future.microtask 避免在构建期间调用异步操作
-    Future.microtask(() => wsService.connect());
+    Future.microtask(() => wsService?.connect());
   }
 
   return;

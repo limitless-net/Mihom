@@ -31,6 +31,9 @@ _DomainUser _$DomainUserFromJson(Map<String, dynamic> json) => _DomainUser(
   discount: (json['discount'] as num?)?.toDouble(),
   commissionRate: (json['commissionRate'] as num?)?.toDouble(),
   telegramId: json['telegramId'] as String?,
+  userId: (json['userId'] as num?)?.toInt(),
+  period: json['period'] as String?,
+  groupId: (json['groupId'] as num?)?.toInt(),
   metadata: json['metadata'] as Map<String, dynamic>? ?? const {},
 );
 
@@ -54,5 +57,8 @@ Map<String, dynamic> _$DomainUserToJson(_DomainUser instance) =>
       'discount': instance.discount,
       'commissionRate': instance.commissionRate,
       'telegramId': instance.telegramId,
+      'userId': instance.userId,
+      'period': instance.period,
+      'groupId': instance.groupId,
       'metadata': instance.metadata,
     };
