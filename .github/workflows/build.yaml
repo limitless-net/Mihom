@@ -272,6 +272,9 @@ jobs:
           sed -i '/systemProp\.http\.proxyPort/d' android/gradle.properties
           sed -i '/systemProp\.https\.proxyHost/d' android/gradle.properties
           sed -i '/systemProp\.https\.proxyPort/d' android/gradle.properties
+          # Remove Aliyun mirrors that return 502 on GitHub Actions
+          sed -i '/maven\.aliyun\.com/d' android/settings.gradle.kts
+          sed -i '/maven\.aliyun\.com/d' android/build.gradle.kts
 
       - name: Configure Gradle Mirrors
         if: startsWith(matrix.platform,'android')
@@ -286,10 +289,6 @@ jobs:
                       gradlePluginPortal()
                       google()
                       mavenCentral()
-                      maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-                      maven { url 'https://maven.aliyun.com/repository/google' }
-                      maven { url 'https://maven.aliyun.com/repository/central' }
-                      maven { url 'https://maven.aliyun.com/repository/public' }
                   }
               }
           }

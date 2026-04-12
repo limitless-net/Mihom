@@ -22,8 +22,7 @@ class UpdateDialog extends ConsumerWidget {
         border: t.cardBorder,
         boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.15), blurRadius: 30)],
       ),
-      child: SingleChildScrollView(
-        child: Column(
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 图标
@@ -93,86 +92,95 @@ class UpdateDialog extends ConsumerWidget {
                   color: t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        S.changelog,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.textSecondary),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        state.releaseNotes!,
-                        style: TextStyle(fontSize: 13, color: t.textPrimary, height: 1.4),
-                      ),
-                    ],
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          S.changelog,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.textSecondary),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          state.releaseNotes!,
+                          style: TextStyle(fontSize: 13, color: t.textPrimary, height: 1.4),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ],
             const SizedBox(height: 18),
             // 更新按钮
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () {
-                  HapticFeedback.mediumImpact();
-                  if (state.updateUrl != null) {
-                    _launchUrl(state.updateUrl!);
-                  }
-                  if (!state.forceUpdate) {
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: Container(
-                  width: double.infinity, height: 48,
-                  decoration: BoxDecoration(
-                    gradient: state.forceUpdate ? null : t.buttonGradient,
-                    color: state.forceUpdate ? t.danger : null,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (state.forceUpdate ? t.danger : t.primary).withValues(alpha: 0.25),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
+            Row(
+              children: [
+                if (!state.forceUpdate) ...[
+                  Expanded(
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: t.textHint.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: Text(
+                              S.updateLater,
+                              style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
                       ),
-                    ],
+                    ),
                   ),
-                  child: Center(
-                    child: Text(
-                      S.updateNow,
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        if (state.updateUrl != null) {
+                          _launchUrl(state.updateUrl!);
+                        }
+                        if (!state.forceUpdate) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: state.forceUpdate ? null : t.buttonGradient,
+                          color: state.forceUpdate ? t.danger : null,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (state.forceUpdate ? t.danger : t.primary).withValues(alpha: 0.25),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            S.updateNow,
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-            // 稍后更新按钮（非强制时）
-            if (!state.forceUpdate) ...[
-              const SizedBox(height: 10),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: double.infinity, height: 42,
-                    decoration: BoxDecoration(
-                      color: t.textHint.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Center(
-                      child: Text(
-                        S.updateLater,
-                        style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ],
-        ),
       ),
     );
   }

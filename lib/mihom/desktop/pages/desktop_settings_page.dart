@@ -584,15 +584,13 @@ class _SettingsUpdateDialogContentState extends ConsumerState<_SettingsUpdateDia
         border: t.cardBorder,
         boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.15), blurRadius: 30)],
       ),
-      child: SingleChildScrollView(
-        child: _checking
+      child: _checking
             ? _buildChecking()
             : _error != null
                 ? _buildError()
                 : _hasUpdate
                     ? _buildHasUpdate()
                     : _buildUpToDate(),
-      ),
     );
   }
 
@@ -694,7 +692,9 @@ class _SettingsUpdateDialogContentState extends ConsumerState<_SettingsUpdateDia
               color: t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: SingleChildScrollView(
+            child: Scrollbar(
+              thumbVisibility: true,
+              child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -716,39 +716,48 @@ class _SettingsUpdateDialogContentState extends ConsumerState<_SettingsUpdateDia
                   ),
                 ],
               ),
+              ),
             ),
           ),
         ],
         const SizedBox(height: 18),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              if (_updateUrl.isNotEmpty) launchUrl(Uri.parse(_updateUrl));
-              Navigator.of(context).pop();
-            },
-            child: Container(
-              width: double.infinity, height: 48,
-              decoration: BoxDecoration(
-                gradient: t.buttonGradient, borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 4))],
+        Row(
+          children: [
+            Expanded(
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                    child: Center(child: Text(S.updateLater, style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600))),
+                  ),
+                ),
               ),
-              child: Center(child: Text(S.updateNow, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))),
             ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: double.infinity, height: 42,
-              decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
-              child: Center(child: Text(S.updateLater, style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600))),
+            const SizedBox(width: 12),
+            Expanded(
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    if (_updateUrl.isNotEmpty) launchUrl(Uri.parse(_updateUrl));
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: t.buttonGradient, borderRadius: BorderRadius.circular(14),
+                      boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 4))],
+                    ),
+                    child: Center(child: Text(S.updateNow, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))),
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );
