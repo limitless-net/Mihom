@@ -19,8 +19,9 @@ class DemoPlansPage extends ConsumerStatefulWidget {
   final MihomTheme theme;
   final bool isGuest;
   final VoidCallback? onLogin;
+  final VoidCallback? onGoHome;
   final bool embeddedMode;
-  const DemoPlansPage({super.key, required this.theme, this.isGuest = false, this.onLogin, this.embeddedMode = false});
+  const DemoPlansPage({super.key, required this.theme, this.isGuest = false, this.onLogin, this.onGoHome, this.embeddedMode = false});
 
   @override
   ConsumerState<DemoPlansPage> createState() => _DemoPlansPageState();
@@ -126,8 +127,10 @@ class _DemoPlansPageState extends ConsumerState<DemoPlansPage> {
             theme: t,
             plan: plan,
             ref: ref,
-            onPlanPurchased: () {
-              Navigator.of(context).pop(true);
+            onPlanPurchased: () {},
+            onGoHome: () {
+              Navigator.of(context).pop();
+              widget.onGoHome?.call();
             },
           ),
         ),
@@ -398,7 +401,8 @@ class _PurchaseSheet extends StatefulWidget {
   final _Plan plan;
   final WidgetRef ref;
   final VoidCallback? onPlanPurchased;
-  const _PurchaseSheet({required this.theme, required this.plan, required this.ref, this.onPlanPurchased});
+  final VoidCallback? onGoHome;
+  const _PurchaseSheet({required this.theme, required this.plan, required this.ref, this.onPlanPurchased, this.onGoHome});
 
   @override
   State<_PurchaseSheet> createState() => _PurchaseSheetState();
@@ -1349,7 +1353,11 @@ class _PurchaseSheetState extends State<_PurchaseSheet> with SingleTickerProvide
         Text('${S.paid} ¥${_effectivePrice.toStringAsFixed(2)}', style: TextStyle(fontSize: 12, color: t.textHint)),
         const SizedBox(height: 20),
         _actionButton(S.okStartConnect, () {
-          Navigator.of(context).pop(true);
+          if (widget.onGoHome != null) {
+            widget.onGoHome!();
+          } else {
+            Navigator.of(context).pop(true);
+          }
         }),
       ]),
     );

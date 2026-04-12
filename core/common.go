@@ -245,9 +245,12 @@ func applyConfig(params *SetupParams) error {
 	defer runLock.Unlock()
 	var err error
 	constant.DefaultTestURL = params.TestURL
-	currentConfig, err = executor.ParseWithPath(filepath.Join(constant.Path.HomeDir(), "config.yaml"))
+	configPath := filepath.Join(constant.Path.HomeDir(), "config.yaml")
+	currentConfig, err = executor.ParseWithPath(configPath)
 	if err != nil {
+		log.Warnln("[App] failed to parse config %s: %v, using default config", configPath, err)
 		currentConfig, _ = config.ParseRawConfig(config.DefaultRawConfig())
+		err = nil
 	}
 	hub.ApplyConfig(currentConfig)
 	patchSelectGroup(params.SelectedMap)

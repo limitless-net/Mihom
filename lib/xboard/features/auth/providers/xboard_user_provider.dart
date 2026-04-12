@@ -280,6 +280,8 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       String errorMessage = '注册失败';
       if (e is XBoardException) {
         errorMessage = e.message;
+      } else if (e is ApiException) {
+        errorMessage = e.message;
       }
       state = state.copyWith(
         isLoading: false,
@@ -288,6 +290,7 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       return false;
     }
   }
+
   Future<bool> sendVerificationCode(String email) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -299,6 +302,8 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       _logger.info('发送验证码出错: $e');
       String errorMessage = '发送验证码失败';
       if (e is XBoardException) {
+        errorMessage = e.message;
+      } else if (e is ApiException) {
         errorMessage = e.message;
       }
       state = state.copyWith(

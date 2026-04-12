@@ -22,6 +22,7 @@ import 'package:fl_clash/xboard/router/app_router.dart' as xboard_router;
 import 'package:fl_clash/xboard/features/initialization/initialization.dart';
 import 'package:fl_clash/mihom/providers/theme_provider.dart';
 import 'package:fl_clash/mihom/theme/mihom_theme.dart';
+import 'package:fl_clash/mihom/mobile/pages/settings_page.dart' show showUpdateDialog;
 
 class Application extends ConsumerStatefulWidget {
   const Application({super.key});
@@ -127,23 +128,32 @@ class ApplicationState extends ConsumerState<Application> {
         if (updateState.hasUpdate && mounted) {
           final currentContext = globalState.navigatorKey.currentContext;
           if (currentContext != null) {
-            showGeneralDialog(
-              context: currentContext,
-              barrierDismissible: !updateState.forceUpdate,
-              barrierLabel: 'close',
-              barrierColor: Colors.black54,
-              transitionDuration: const Duration(milliseconds: 250),
-              transitionBuilder: (ctx, a1, a2, child) => Transform.scale(
-                scale: Curves.easeOutBack.transform(a1.value),
-                child: Opacity(opacity: a1.value, child: child),
-              ),
-              pageBuilder: (ctx, a1, a2) => Center(
-                child: Material(
-                  color: Colors.transparent,
-                  child: UpdateDialog(state: updateState),
+            if (!system.isDesktop) {
+              // 移动端：使用与设置页/我的页面相同的更新弹窗
+              final systemBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+              final mihomThemeState = ref.read(mobileThemeProvider);
+              final t = resolveTheme(mihomThemeState, systemBrightness);
+              showUpdateDialog(currentContext, t);
+            } else {
+              // 桌面端：使用 UpdateDialog
+              showGeneralDialog(
+                context: currentContext,
+                barrierDismissible: !updateState.forceUpdate,
+                barrierLabel: 'close',
+                barrierColor: Colors.black54,
+                transitionDuration: const Duration(milliseconds: 250),
+                transitionBuilder: (ctx, a1, a2, child) => Transform.scale(
+                  scale: Curves.easeOutBack.transform(a1.value),
+                  child: Opacity(opacity: a1.value, child: child),
                 ),
-              ),
-            );
+                pageBuilder: (ctx, a1, a2) => Center(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: UpdateDialog(state: updateState),
+                  ),
+                ),
+              );
+            }
           }
         }
       } catch (e) {

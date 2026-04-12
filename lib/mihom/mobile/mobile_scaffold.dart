@@ -244,7 +244,10 @@ class MobileScaffoldState extends ConsumerState<MobileScaffold> {
   void _openPlansPage() {
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (ctx, a1, a2) => DemoPlansPage(theme: widget.theme, isGuest: _isGuest, onLogin: _handleLogin),
+        pageBuilder: (ctx, a1, a2) => DemoPlansPage(theme: widget.theme, isGuest: _isGuest, onLogin: _handleLogin, onGoHome: () {
+          Navigator.of(ctx).pop();
+          setState(() => _currentIndex = 0);
+        }),
         transitionsBuilder: (ctx, a1, a2, child) => SlideTransition(
           position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
               .animate(CurvedAnimation(parent: a1, curve: Curves.easeOutCubic)),
@@ -322,7 +325,9 @@ class MobileScaffoldState extends ConsumerState<MobileScaffold> {
       ),
       DemoNodesPage(theme: t, isGuest: _isGuest, onLogin: _handleLogin,
         selectedNode: 0, onNodeSelected: (_) {}),
-      DemoPlansPage(theme: t, isGuest: _isGuest, onLogin: _handleLogin, embeddedMode: true),
+      DemoPlansPage(theme: t, isGuest: _isGuest, onLogin: _handleLogin, embeddedMode: true, onGoHome: () {
+        setState(() => _currentIndex = 0);
+      }),
       DemoProfilePage(theme: t, onOpenSettings: openSettings, isGuest: _isGuest, onLogin: _handleLogin, onLogout: _handleLogout),
     ];
 
