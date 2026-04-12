@@ -6,9 +6,11 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TAG = os.getenv("TAG")
 RUN_ID = os.getenv("RUN_ID")
 
+REPO = os.getenv("GITHUB_REPOSITORY", "limitless-net/Mihom")
+
 IS_STABLE = "-" not in TAG
 
-CHAT_ID = "@FlClash"
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "@FlClash")
 API_URL = f"http://localhost:8081/bot{TELEGRAM_BOT_TOKEN}/sendMediaGroup"
 
 DIST_DIR = os.path.join(os.getcwd(), "dist")
@@ -45,9 +47,9 @@ if TAG:
     text += f"\n**{TAG}**\n"
 
 if IS_STABLE:
-    text += f"\nhttps://github.com/chen08209/FlClash/releases/tag/{TAG}\n"
+    text += f"\nhttps://github.com/{REPO}/releases/tag/{TAG}\n"
 else:
-    text += f"\nhttps://github.com/chen08209/FlClash/actions/runs/{RUN_ID}\n"
+    text += f"\nhttps://github.com/{REPO}/actions/runs/{RUN_ID}\n"
 
 if os.path.exists(release):
     text += "\n"
