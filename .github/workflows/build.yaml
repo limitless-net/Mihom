@@ -63,11 +63,41 @@ jobs:
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
 
+      - name: Cache Gradle Distribution
+        if: startsWith(matrix.platform,'android')
+        id: gradle-dist-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/gradle-8.13-bin.zip
+          key: gradle-dist-8.13-bin
+
+      - name: Download Gradle Distribution
+        if: startsWith(matrix.platform,'android') && steps.gradle-dist-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          for url in \
+            "https://services.gradle.org/distributions/gradle-8.13-bin.zip" \
+            "https://downloads.gradle-dn.com/distributions/gradle-8.13-bin.zip"; do
+            echo "Trying $url..."
+            if curl -fsSL --retry 5 --retry-delay 15 --retry-all-errors \
+                 --connect-timeout 60 --max-time 600 \
+                 -o /tmp/gradle-8.13-bin.zip "$url"; then
+              echo "Downloaded successfully from $url"
+              exit 0
+            fi
+          done
+          echo "All mirrors failed"
+          exit 1
+
+      - name: Configure Gradle Wrapper
+        if: startsWith(matrix.platform,'android')
+        shell: bash
+        run: |
+          sed -i 's|distributionUrl=.*|distributionUrl=file\\:///tmp/gradle-8.13-bin.zip|' android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Setup Gradle
         if: startsWith(matrix.platform,'android')
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: wrapper
 
       - name: Setup Go
         uses: actions/setup-go@v5
