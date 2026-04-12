@@ -1748,11 +1748,13 @@ class _PurchaseDialogState extends ConsumerState<_PurchaseDialog> with SingleTic
             )
           else
             _actionButton(
-              _tradeNo != null
-                  ? (_remainingToPay <= 0
-                      ? (S.isEn ? 'Pay with Balance' : '余额支付')
-                      : (S.isEn ? 'Select Payment' : '选择支付方式'))
-                  : S.buyNow,
+              _effectivePrice <= 0 && _couponVerified
+                  ? (S.isEn ? 'Free Claim' : '免费领取')
+                  : _tradeNo != null
+                      ? (_remainingToPay <= 0
+                          ? (S.isEn ? 'Pay with Balance' : '余额支付')
+                          : (S.isEn ? 'Select Payment' : '选择支付方式'))
+                      : S.buyNow,
               () async {
                 if (_selectedCycle < 0) {
                   _showCyclePicker();
@@ -1771,8 +1773,8 @@ class _PurchaseDialogState extends ConsumerState<_PurchaseDialog> with SingleTic
                   // 如果后端 plan_change_enable=0 会返回错误，_createOrder 中已处理
                   if (_tradeNo == null || !mounted) return;
                 }
-                // 余额足够，尝试直接用余额支付
-                if (_remainingToPay <= 0 && _userBalance > 0) {
+                // 免费订单（优惠码全额抵扣）或余额足够，直接支付
+                if (_effectivePrice <= 0 || (_remainingToPay <= 0 && _userBalance > 0)) {
                   setState(() => _step = _Step.paying);
                   try {
                     final sdk = await ref.read(xboardSdkProvider.future);

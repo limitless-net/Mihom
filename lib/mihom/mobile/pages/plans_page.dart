@@ -1204,9 +1204,13 @@ class _PurchaseSheetState extends State<_PurchaseSheet> with SingleTickerProvide
             ])
           else
             _actionButton(
-              _tradeNo != null
-                  ? (_remainingToPay <= 0 ? (S.isEn ? 'Pay with Balance' : '余额支付') : (S.isEn ? 'Select Payment' : '选择支付方式'))
-                  : S.buyNow,
+              _effectivePrice <= 0 && _couponVerified
+                  ? (S.isEn ? 'Free Claim' : '免费领取')
+                  : _tradeNo != null
+                      ? (_remainingToPay <= 0
+                          ? (S.isEn ? 'Pay with Balance' : '余额支付')
+                          : (S.isEn ? 'Select Payment' : '选择支付方式'))
+                      : S.buyNow,
               () async {
                 if (_selectedCycle < 0) { _showCyclePicker(); return; }
                 final coupon = _couponCtrl.text.trim();
@@ -1220,8 +1224,8 @@ class _PurchaseSheetState extends State<_PurchaseSheet> with SingleTickerProvide
                   await _createOrder();
                   if (_tradeNo == null || !mounted) return;
                 }
-                // Balance covers full amount
-                if (_remainingToPay <= 0 && _userBalance > 0) {
+                // Free order (coupon covers full amount) or balance covers full amount
+                if (_effectivePrice <= 0 || (_remainingToPay <= 0 && _userBalance > 0)) {
                   setState(() => _step = _Step.paying);
                   try {
                     final sdk = await ref.read(xboardSdkProvider.future);
