@@ -70,10 +70,10 @@ jobs:
       - name: Pre-download Gradle Distribution
         if: startsWith(matrix.platform,'android')
         shell: bash
-        working-directory: android
         run: |
+          chmod +x android/gradlew
           for i in 1 2 3 4 5; do
-            if ./gradlew --version; then
+            if ./android/gradlew --project-dir android --version; then
               echo "Gradle setup successful"
               exit 0
             fi
