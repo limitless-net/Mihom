@@ -59,6 +59,10 @@ jobs:
         if: startsWith(matrix.platform,'android')
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
+
+          # verify keystore is readable (fails fast with a clearer error)
+          keytool -list -keystore android/app/keystore.jks -storepass "${{ secrets.STORE_PASSWORD }}" >/dev/null
+
           if [ -n "${{ secrets.SERVICE_JSON }}" ]; then
             echo "${{ secrets.SERVICE_JSON }}" | base64 --decode > android/app/google-services.json
           fi
@@ -279,13 +283,13 @@ jobs:
               settings.pluginManagement {
                   repositories {
                       maven { url '/tmp/gradle-plugins-repo' }
+                      gradlePluginPortal()
+                      google()
+                      mavenCentral()
                       maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
                       maven { url 'https://maven.aliyun.com/repository/google' }
                       maven { url 'https://maven.aliyun.com/repository/central' }
                       maven { url 'https://maven.aliyun.com/repository/public' }
-                      gradlePluginPortal()
-                      google()
-                      mavenCentral()
                   }
               }
           }
