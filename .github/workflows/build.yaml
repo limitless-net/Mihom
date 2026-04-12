@@ -48,12 +48,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Branding Config
-        shell: bash
-        run: |
-          mkdir -p assets/config
-          echo "${{ secrets.XBOARD_CONFIG }}" | base64 --decode > assets/config/xboard.config.yaml
-
       - name: Setup Android Signing
         if: startsWith(matrix.platform,'android')
         run: |
