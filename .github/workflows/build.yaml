@@ -397,6 +397,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_TELEGRAM: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}
+      HAS_SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -463,14 +464,14 @@ jobs:
           body_path: './release.md'
 
       - name: Create Fdroid Source Dir
-        if: ${{ env.IS_STABLE == 'true' }}
+        if: ${{ env.IS_STABLE == 'true' && env.HAS_SSH_DEPLOY_KEY == 'true' }}
         run: |
           mkdir -p ./tmp
           cp ./dist/*android-arm64-v8a* ./tmp/ || true
           echo "Files copied successfully"
 
       - name: Push to fdroid repo
-        if: ${{ env.IS_STABLE == 'true' }}
+        if: ${{ env.IS_STABLE == 'true' && env.HAS_SSH_DEPLOY_KEY == 'true' }}
         uses: cpina/github-action-push-to-another-repository@v1.7.2
         env:
           SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
