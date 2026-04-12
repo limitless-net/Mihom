@@ -63,6 +63,27 @@ jobs:
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
 
+      - name: Configure Gradle Mirrors
+        if: startsWith(matrix.platform,'android')
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/mirrors.init.gradle << 'INITEOF'
+          beforeSettings { settings ->
+              settings.pluginManagement {
+                  repositories {
+                      maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+                      maven { url 'https://maven.aliyun.com/repository/google' }
+                      maven { url 'https://maven.aliyun.com/repository/central' }
+                      maven { url 'https://maven.aliyun.com/repository/public' }
+                      gradlePluginPortal()
+                      google()
+                      mavenCentral()
+                  }
+              }
+          }
+          INITEOF
+
       - name: Cache Gradle Distribution
         if: startsWith(matrix.platform,'android')
         id: gradle-dist-cache
