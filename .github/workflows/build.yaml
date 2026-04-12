@@ -260,6 +260,11 @@ jobs:
         shell: bash
         run: |
           sed -i 's|distributionUrl=.*|distributionUrl=file\\:///tmp/gradle-8.13-bin.zip|' android/gradle/wrapper/gradle-wrapper.properties
+          # Remove local proxy settings that don't work on CI
+          sed -i '/systemProp\.http\.proxyHost/d' android/gradle.properties
+          sed -i '/systemProp\.http\.proxyPort/d' android/gradle.properties
+          sed -i '/systemProp\.https\.proxyHost/d' android/gradle.properties
+          sed -i '/systemProp\.https\.proxyPort/d' android/gradle.properties
 
       - name: Configure Gradle Mirrors
         if: startsWith(matrix.platform,'android')
