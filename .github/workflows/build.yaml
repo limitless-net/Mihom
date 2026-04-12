@@ -147,7 +147,112 @@ jobs:
           IMPLPOM
           }
 
-          echo "Kotlin DSL plugin artifacts:"
+          # ====== Kotlin JVM 1.9.20 marker (for Flutter SDK included build) ======
+          KJVM_DIR="$REPO/org/jetbrains/kotlin/jvm/org.jetbrains.kotlin.jvm.gradle.plugin/1.9.20"
+          mkdir -p "$KJVM_DIR"
+          cat > "$KJVM_DIR/org.jetbrains.kotlin.jvm.gradle.plugin-1.9.20.pom" << 'KJVMPOM'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>org.jetbrains.kotlin.jvm</groupId>
+            <artifactId>org.jetbrains.kotlin.jvm.gradle.plugin</artifactId>
+            <version>1.9.20</version>
+            <packaging>pom</packaging>
+            <dependencies>
+              <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-gradle-plugin</artifactId>
+                <version>1.9.20</version>
+              </dependency>
+            </dependencies>
+          </project>
+          KJVMPOM
+
+          # ====== AGP 8.12.2 marker ======
+          AGP_DIR="$REPO/com/android/application/com.android.application.gradle.plugin/8.12.2"
+          mkdir -p "$AGP_DIR"
+          cat > "$AGP_DIR/com.android.application.gradle.plugin-8.12.2.pom" << 'AGPPOM'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.android.application</groupId>
+            <artifactId>com.android.application.gradle.plugin</artifactId>
+            <version>8.12.2</version>
+            <packaging>pom</packaging>
+            <dependencies>
+              <dependency>
+                <groupId>com.android.tools.build</groupId>
+                <artifactId>gradle</artifactId>
+                <version>8.12.2</version>
+              </dependency>
+            </dependencies>
+          </project>
+          AGPPOM
+
+          # ====== Kotlin Android 2.2.10 marker ======
+          KA_DIR="$REPO/org/jetbrains/kotlin/android/org.jetbrains.kotlin.android.gradle.plugin/2.2.10"
+          mkdir -p "$KA_DIR"
+          cat > "$KA_DIR/org.jetbrains.kotlin.android.gradle.plugin-2.2.10.pom" << 'KAPOM'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>org.jetbrains.kotlin.android</groupId>
+            <artifactId>org.jetbrains.kotlin.android.gradle.plugin</artifactId>
+            <version>2.2.10</version>
+            <packaging>pom</packaging>
+            <dependencies>
+              <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-gradle-plugin</artifactId>
+                <version>2.2.10</version>
+              </dependency>
+            </dependencies>
+          </project>
+          KAPOM
+
+          # ====== Google Services 4.3.15 marker ======
+          GS_DIR="$REPO/com/google/gms/google-services/com.google.gms.google-services.gradle.plugin/4.3.15"
+          mkdir -p "$GS_DIR"
+          cat > "$GS_DIR/com.google.gms.google-services.gradle.plugin-4.3.15.pom" << 'GSPOM'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.google.gms.google-services</groupId>
+            <artifactId>com.google.gms.google-services.gradle.plugin</artifactId>
+            <version>4.3.15</version>
+            <packaging>pom</packaging>
+            <dependencies>
+              <dependency>
+                <groupId>com.google.gms</groupId>
+                <artifactId>google-services</artifactId>
+                <version>4.3.15</version>
+              </dependency>
+            </dependencies>
+          </project>
+          GSPOM
+
+          # ====== Firebase Crashlytics 2.8.1 marker ======
+          FC_DIR="$REPO/com/google/firebase/crashlytics/com.google.firebase.crashlytics.gradle.plugin/2.8.1"
+          mkdir -p "$FC_DIR"
+          cat > "$FC_DIR/com.google.firebase.crashlytics.gradle.plugin-2.8.1.pom" << 'FCPOM'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.google.firebase.crashlytics</groupId>
+            <artifactId>com.google.firebase.crashlytics.gradle.plugin</artifactId>
+            <version>2.8.1</version>
+            <packaging>pom</packaging>
+            <dependencies>
+              <dependency>
+                <groupId>com.google.firebase</groupId>
+                <artifactId>firebase-crashlytics-gradle</artifactId>
+                <version>2.8.1</version>
+              </dependency>
+            </dependencies>
+          </project>
+          FCPOM
+
+          echo "All plugin marker POMs created:"
           find "$REPO" -type f -exec ls -la {} \;
 
       - name: Configure Gradle Wrapper
