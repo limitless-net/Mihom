@@ -395,6 +395,8 @@ jobs:
     permissions: write-all
     needs: [ build ]
     runs-on: ubuntu-latest
+    env:
+      HAS_TELEGRAM: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -429,7 +431,7 @@ jobs:
             awk '!/Update changelog/ && NF {print "- " $0 "\n"}' >> "$out"
           done
       - name: Push to telegram
-        if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}
+        if: ${{ env.HAS_TELEGRAM == 'true' }}
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
