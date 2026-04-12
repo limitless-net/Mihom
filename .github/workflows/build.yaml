@@ -67,6 +67,22 @@ jobs:
         if: startsWith(matrix.platform,'android')
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Pre-download Gradle Distribution
+        if: startsWith(matrix.platform,'android')
+        shell: bash
+        working-directory: android
+        run: |
+          for i in 1 2 3 4 5; do
+            if ./gradlew --version; then
+              echo "Gradle setup successful"
+              exit 0
+            fi
+            echo "Attempt $i failed. Retrying in 30 seconds..."
+            sleep 30
+          done
+          echo "All Gradle download attempts failed"
+          exit 1
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
