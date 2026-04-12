@@ -32,27 +32,28 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   final _picker = ImagePicker();
+  late final SupportChatNotifier _chatNotifier;
 
   MihomTheme get t => widget.theme;
 
   @override
   void initState() {
     super.initState();
+    _chatNotifier = ref.read(supportChatProvider.notifier);
     Future.microtask(() {
-      final notifier = ref.read(supportChatProvider.notifier);
       // 如果已有工单数据，只恢复轮询；否则完整初始化
       if (ref.read(supportChatProvider).ticketId != null) {
-        notifier.resumePolling();
+        _chatNotifier.resumePolling();
       } else {
-        notifier.init();
+        _chatNotifier.init();
       }
     });
   }
 
   @override
   void dispose() {
-    // 关闭聊天窗口时暂停轮询
-    ref.read(supportChatProvider.notifier).pausePolling();
+    // 关闭聊天窗口时暂停轮询（使用提前保存的引用，避免 dispose 时访问 ref）
+    _chatNotifier.pausePolling();
     _textController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
