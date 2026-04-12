@@ -9,6 +9,7 @@ import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/providers/app.dart';
 import 'package:fl_clash/providers/database.dart';
 import 'package:fl_clash/xboard/features/auth/providers/xboard_user_provider.dart';
+import 'package:fl_clash/xboard/domain/models/subscription.dart';
 import 'package:fl_clash/xboard/features/profile/providers/profile_import_provider.dart';
 import 'package:fl_clash/views/proxies/common.dart' as proxies_common;
 import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart';
@@ -1191,6 +1192,55 @@ class _DesktopHomePageState extends ConsumerState<DesktopHomePage> with TickerPr
     );
   }
 
+  Widget _buildWarningBanners() {
+    final user = ref.watch(userInfoProvider);
+    final sub = ref.watch(subscriptionInfoProvider);
+    final isExpired = user?.isExpired ?? false;
+    final isTrafficExhausted = sub?.isTrafficExhausted ?? false;
+    if (!isExpired && !isTrafficExhausted) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (isExpired)
+            _warningChip(
+              icon: Icons.access_time_rounded,
+              label: S.isEn ? 'Plan expired, please renew' : '套餐已过期，请续费',
+              color: const Color(0xFFFF6B6B),
+            ),
+          if (isExpired && isTrafficExhausted) const SizedBox(width: 8),
+          if (isTrafficExhausted)
+            _warningChip(
+              icon: Icons.data_usage_rounded,
+              label: S.isEn ? 'Traffic exhausted' : '流量已用完',
+              color: const Color(0xFFFF9800),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _warningChip({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+        ],
+      ),
+    );
+  }
+
   /// 预处理 HTML：将 ul/ol/li 转为居中段落，移除子弹符号，确保 HtmlWidget 能正确居中
   String _preprocessNoticeHtml(String html) {
     // 移除 ul/ol 包裹标签
@@ -1623,7 +1673,16 @@ class _DesktopHomePageState extends ConsumerState<DesktopHomePage> with TickerPr
         children: [
           SizedBox(height: compact ? 24 : 48),
           // 大按钮 — 带点击缩放反馈 + 连接脉冲
-          MouseRegion(
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              // 悬浮横幅（不占布局空间）
+              Positioned(
+                top: -36,
+                child: _buildWarningBanners(),
+              ),
+              MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
             onTapDown: (_) => _tapScaleCtrl.forward(),
@@ -1681,6 +1740,8 @@ class _DesktopHomePageState extends ConsumerState<DesktopHomePage> with TickerPr
               },
             ),
           ),
+          ),
+            ],
           ),
           SizedBox(height: compact ? 12 : 24),
 

@@ -389,10 +389,15 @@ class _DemoProfilePageState extends ConsumerState<DemoProfilePage> {
     }
 
     // Expiry display
+    final bool isExpired = user?.isExpired ?? false;
     final String expiresStr;
     if (expiresAt != null) {
-      final daysLeft = expiresAt.difference(DateTime.now()).inDays;
-      expiresStr = S.isEn ? '$daysLeft days left' : '剩余 $daysLeft 天';
+      if (isExpired) {
+        expiresStr = S.isEn ? 'Expired' : '已过期';
+      } else {
+        final daysLeft = expiresAt.difference(DateTime.now()).inDays;
+        expiresStr = S.isEn ? '$daysLeft days left' : '剩余 $daysLeft 天';
+      }
     } else {
       expiresStr = hasPlan ? (S.isEn ? 'Lifetime' : '长期有效') : (S.isEn ? 'N/A' : '无');
     }
@@ -459,7 +464,7 @@ class _DemoProfilePageState extends ConsumerState<DemoProfilePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(S.expiresDate, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              Text(expiresStr, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(expiresStr, style: TextStyle(color: isExpired ? const Color(0xFFFF6B6B) : Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: isExpired ? FontWeight.w600 : FontWeight.w500)),
             ],
           ),
         ],
@@ -966,7 +971,6 @@ class _DemoProfilePageState extends ConsumerState<DemoProfilePage> {
 
   // ── 礼品卡弹窗 ──
   void _showGiftCardDialog(BuildContext context) {
-    final ctrl = TextEditingController();
     showGeneralDialog(
       context: context,
       barrierDismissible: true, barrierLabel: 'close', barrierColor: Colors.black54,
@@ -976,66 +980,10 @@ class _DemoProfilePageState extends ConsumerState<DemoProfilePage> {
       pageBuilder: (ctx, a1, a2) => Center(
         child: Material(
           color: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(ctx).size.width * 0.85,
-            constraints: const BoxConstraints(maxWidth: 340),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: t.cardBg, borderRadius: BorderRadius.circular(20), border: t.cardBorder,
-              boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.15), blurRadius: 30)]),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.card_giftcard, color: const Color(0xFFE91E63), size: 32),
-                const SizedBox(height: 10),
-                Text(S.giftCardTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.textPrimary)),
-                const SizedBox(height: 14),
-                Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextField(
-                    controller: ctrl,
-                    autofillHints: const [],
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    enableIMEPersonalizedLearning: false,
-                    keyboardType: TextInputType.visiblePassword,
-                    style: TextStyle(fontSize: 13, color: t.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: S.giftCardHint, hintStyle: TextStyle(fontSize: 12, color: t.textHint),
-                      border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), isDense: true,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () async {
-                    if (ctrl.text.trim().isEmpty) {
-                      showPillToast(context, t, S.giftCardEmpty);
-                      return;
-                    }
-                    try {
-                      final http = XBoardSDK.instance.httpService;
-                      await http.postRequest('/api/v1/user/gift-card/redeem', {'code': ctrl.text.trim()});
-                      if (context.mounted) Navigator.of(ctx).pop();
-                      if (context.mounted) showPillToast(context, t, S.isEn ? 'Gift card redeemed!' : '礼品卡已兑换！');
-                      // Refresh user info after redeem
-                      ref.read(xboardUserProvider.notifier).refreshUserInfo();
-                    } catch (e) {
-                      if (context.mounted) showPillToast(context, t, e is XBoardException ? e.message : e.toString());
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity, height: 44,
-                    decoration: BoxDecoration(gradient: t.buttonGradient, borderRadius: BorderRadius.circular(12)),
-                    child: Center(child: Text(S.isEn ? 'Redeem' : '兑换', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          child: _MobileGiftCardDialog(theme: t, onSuccess: () {
+            ref.read(xboardUserProvider.notifier).refreshUserInfo();
+            ref.read(xboardUserProvider.notifier).refreshSubscriptionInfo();
+          }),
         ),
       ),
     );
@@ -1830,6 +1778,306 @@ class _TgDialogContentState extends State<_TgDialogContent> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Mobile Gift Card Dialog (with check → preview → redeem flow) ──
+class _MobileGiftCardDialog extends StatefulWidget {
+  final MihomTheme theme;
+  final VoidCallback? onSuccess;
+  const _MobileGiftCardDialog({required this.theme, this.onSuccess});
+  @override
+  State<_MobileGiftCardDialog> createState() => _MobileGiftCardDialogState();
+}
+
+class _MobileGiftCardDialogState extends State<_MobileGiftCardDialog> {
+  MihomTheme get t => widget.theme;
+  final _ctrl = TextEditingController();
+  bool _loading = false;
+  bool _checked = false;
+  bool _redeemed = false;
+  String? _error;
+  bool _canRedeem = false;
+  String? _templateName;
+  String? _templateTypeName;
+  List<String> _previewLines = [];
+  Map<String, dynamic>? _rewards;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _check() async {
+    final code = _ctrl.text.trim();
+    if (code.isEmpty) {
+      setState(() => _error = S.giftCardEmpty);
+      return;
+    }
+    setState(() { _loading = true; _error = null; _checked = false; });
+    try {
+      final result = await XBoardSDK.instance.giftCard.checkCode(code);
+      setState(() {
+        _loading = false;
+        _checked = true;
+        _canRedeem = result.canRedeem;
+        _templateName = result.codeInfo.template.name;
+        _templateTypeName = result.codeInfo.template.typeName;
+        _previewLines = parseRewardPreview(result.rewardPreview);
+        if (!result.canRedeem && result.reason != null) _error = result.reason;
+      });
+    } catch (e) {
+      final msg = e is NetworkException
+          ? (S.isEn ? 'This gift card is temporarily unavailable' : '该礼品卡暂不可用，请稍后重试')
+          : e is XBoardException ? e.message : (S.isEn ? 'Check failed' : '查询失败');
+      setState(() { _loading = false; _error = msg; });
+    }
+  }
+
+  Future<void> _redeem() async {
+    final code = _ctrl.text.trim();
+    if (code.isEmpty) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final result = await XBoardSDK.instance.giftCard.redeemCode(code);
+      setState(() {
+        _loading = false;
+        _redeemed = true;
+        _rewards = result.rewards;
+        _templateName = result.templateName;
+      });
+      widget.onSuccess?.call();
+    } catch (e) {
+      final msg = e is NetworkException
+          ? (S.isEn ? 'Redemption temporarily unavailable' : '兑换服务暂不可用，请稍后重试')
+          : e is XBoardException ? e.message : (S.isEn ? 'Redemption failed' : '兑换失败');
+      setState(() { _loading = false; _error = msg; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width * 0.85;
+    return Container(
+      width: w.clamp(280, 340),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: t.cardBg, borderRadius: BorderRadius.circular(20), border: t.cardBorder,
+        boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.15), blurRadius: 30)]),
+      child: _redeemed ? _buildSuccess() : _buildInput(),
+    );
+  }
+
+  Widget _buildInput() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.card_giftcard, color: Color(0xFFE91E63), size: 32),
+        const SizedBox(height: 10),
+        Text(S.giftCardTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.textPrimary)),
+        const SizedBox(height: 14),
+        Container(
+          height: 44,
+          decoration: BoxDecoration(
+            color: t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: _ctrl,
+            enabled: !_loading && !_checked,
+            autofillHints: const [],
+            autocorrect: false,
+            enableSuggestions: false,
+            enableIMEPersonalizedLearning: false,
+            keyboardType: TextInputType.visiblePassword,
+            style: TextStyle(fontSize: 13, color: t.textPrimary),
+            decoration: InputDecoration(
+              hintText: S.giftCardHint, hintStyle: TextStyle(fontSize: 12, color: t.textHint),
+              border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), isDense: true,
+            ),
+            onSubmitted: (_) => _checked ? _redeem() : _check(),
+          ),
+        ),
+        // Preview area
+        if (_checked && _previewLines.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity, padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: t.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.primary.withValues(alpha: 0.15)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.card_giftcard, size: 14, color: t.primary),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(_templateName ?? '', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.textPrimary), overflow: TextOverflow.ellipsis)),
+                    if (_templateTypeName != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: t.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                        child: Text(_templateTypeName!, style: TextStyle(fontSize: 10, color: t.primary)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(S.isEn ? 'Rewards preview:' : '奖励预览:', style: TextStyle(fontSize: 11, color: t.textSecondary)),
+                const SizedBox(height: 4),
+                for (final line in _previewLines)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(children: [
+                      const Icon(Icons.star, size: 12, color: Color(0xFFFF9800)),
+                      const SizedBox(width: 6),
+                      Text(line, style: TextStyle(fontSize: 12, color: t.textPrimary)),
+                    ]),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          Text(_error!, style: TextStyle(fontSize: 12, color: t.danger), textAlign: TextAlign.center),
+        ],
+        const SizedBox(height: 16),
+        if (_checked) ...[
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() { _checked = false; _canRedeem = false; _previewLines = []; _error = null; }),
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: t.isDark ? const Color(0xFF252850) : const Color(0xFFF0F2F8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(child: Text(S.isEn ? 'Change' : '换一个', style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600))),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: GestureDetector(
+                  onTap: (_loading || !_canRedeem) ? null : _redeem,
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: (_loading || !_canRedeem) ? null : t.buttonGradient,
+                      color: (_loading || !_canRedeem) ? t.textHint.withValues(alpha: 0.2) : null,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: _loading
+                          ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: t.primary))
+                          : Text(S.redeem, style: TextStyle(color: _canRedeem ? Colors.white : t.textHint, fontSize: 14, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else
+          GestureDetector(
+            onTap: _loading ? null : _check,
+            child: Container(
+              width: double.infinity, height: 44,
+              decoration: BoxDecoration(
+                gradient: _loading ? null : t.buttonGradient,
+                color: _loading ? t.textHint.withValues(alpha: 0.2) : null,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: _loading
+                    ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: t.primary))
+                    : Text(S.isEn ? 'Check' : '查询', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSuccess() {
+    final rewardLines = <String>[];
+    if (_rewards != null) {
+      final r = _rewards!;
+      if (r['balance'] != null && (r['balance'] as num) > 0) {
+        final yuan = (r['balance'] as num) / 100;
+        rewardLines.add(S.isEn ? 'Balance +¥${yuan.toStringAsFixed(2)}' : '余额 +¥${yuan.toStringAsFixed(2)}');
+      }
+      if (r['transfer_enable'] != null && (r['transfer_enable'] as num) > 0) {
+        final gb = (r['transfer_enable'] as num) / (1024 * 1024 * 1024);
+        rewardLines.add(S.isEn ? 'Traffic +${gb.toStringAsFixed(1)} GB' : '流量 +${gb.toStringAsFixed(1)} GB');
+      }
+      if (r['plan_id'] != null) {
+        final days = r['plan_validity_days'] ?? 0;
+        rewardLines.add(S.isEn ? 'Plan assigned (${days}d)' : '已分配套餐（${days}天）');
+      }
+      if (r['expire_days'] != null && (r['expire_days'] as num) > 0) {
+        rewardLines.add(S.isEn ? 'Validity +${r['expire_days']}d' : '有效期 +${r['expire_days']}天');
+      }
+      if (r['device_limit'] != null && (r['device_limit'] as num) > 0) {
+        rewardLines.add(S.isEn ? 'Device limit +${r['device_limit']}' : '设备数 +${r['device_limit']}');
+      }
+      if (r['reset_package'] == true) {
+        rewardLines.add(S.isEn ? 'Traffic reset' : '流量已重置');
+      }
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.check_circle, color: t.success, size: 48),
+        const SizedBox(height: 12),
+        Text(S.redeemSuccess, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.textPrimary)),
+        if (_templateName != null && _templateName!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(_templateName!, style: TextStyle(fontSize: 12, color: t.textSecondary)),
+        ],
+        if (rewardLines.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity, padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: t.success.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.success.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(S.isEn ? 'Rewards:' : '奖励内容:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.textPrimary)),
+                const SizedBox(height: 6),
+                for (final line in rewardLines)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(children: [
+                      Icon(Icons.star, size: 12, color: t.success),
+                      const SizedBox(width: 6),
+                      Text(line, style: TextStyle(fontSize: 12, color: t.textSecondary)),
+                    ]),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            width: double.infinity, height: 44,
+            decoration: BoxDecoration(gradient: t.buttonGradient, borderRadius: BorderRadius.circular(12)),
+            child: Center(child: Text(S.isEn ? 'OK' : '确定', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))),
+          ),
+        ),
+      ],
     );
   }
 }

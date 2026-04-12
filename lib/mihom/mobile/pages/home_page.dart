@@ -8,6 +8,7 @@ import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/xboard/features/auth/providers/xboard_user_provider.dart';
+import 'package:fl_clash/xboard/domain/models/subscription.dart';
 import 'package:fl_clash/xboard/features/profile/providers/profile_import_provider.dart';
 import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -1117,11 +1118,38 @@ class _DemoHomePageState extends ConsumerState<DemoHomePage> with TickerProvider
                 final sub = ref.watch(subscriptionInfoProvider);
                 final warnings = <Widget>[];
 
+                // Check expired
+                final bool isExpired = user?.isExpired ?? false;
+                if (isExpired) {
+                  warnings.add(_warningBanner(
+                    icon: Icons.access_time_rounded,
+                    color: t.danger,
+                    text: S.isEn ? 'Plan expired, please renew' : '\u5957\u9910\u5df2\u8fc7\u671f\uff0c\u8bf7\u7eed\u8d39',
+                    actionText: S.renew,
+                    onAction: () => _openPlans(),
+                  ));
+                }
+
+                // Check traffic exhausted
+                final bool isTrafficExhausted = sub?.isTrafficExhausted ?? false;
+                if (isTrafficExhausted) {
+                  if (warnings.isNotEmpty) warnings.add(const SizedBox(height: 6));
+                  warnings.add(_warningBanner(
+                    icon: Icons.data_usage_rounded,
+                    color: t.danger,
+                    text: S.isEn ? 'Traffic exhausted' : '\u6d41\u91cf\u5df2\u7528\u5b8c',
+                    actionText: S.upgrade,
+                    onAction: () => _openPlans(),
+                  ));
+                }
+
                 // Check plan expiry (within 7 days)
+                if (!isExpired) {
                 final expiresAt = user?.expiredAt ?? sub?.expiredAt;
                 if (expiresAt != null) {
                   final daysLeft = expiresAt.difference(DateTime.now()).inDays;
                   if (daysLeft <= 7 && daysLeft >= 0) {
+                    if (warnings.isNotEmpty) warnings.add(const SizedBox(height: 6));
                     warnings.add(_warningBanner(
                       icon: Icons.timer_outlined,
                       color: t.warning,
@@ -1131,8 +1159,10 @@ class _DemoHomePageState extends ConsumerState<DemoHomePage> with TickerProvider
                     ));
                   }
                 }
+                }
 
                 // Check traffic usage (>= 85%)
+                if (!isTrafficExhausted) {
                 final totalBytes = sub?.transferLimit ?? user?.transferLimit ?? 0;
                 final usedBytes = (sub?.uploadedBytes ?? 0) + (sub?.downloadedBytes ?? 0);
                 if (totalBytes > 0) {
@@ -1147,6 +1177,7 @@ class _DemoHomePageState extends ConsumerState<DemoHomePage> with TickerProvider
                       onAction: () => _openPlans(),
                     ));
                   }
+                }
                 }
 
                 if (warnings.isEmpty) return const SizedBox.shrink();

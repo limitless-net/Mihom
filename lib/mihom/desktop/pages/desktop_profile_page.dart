@@ -106,8 +106,11 @@ class _DesktopProfilePageState extends ConsumerState<DesktopProfilePage> {
     final deviceLimit = sub?.deviceLimit;
     final expiresAt = user?.expiredAt ?? sub?.expiredAt;
     final hasPlan = user?.planId != null;
+    final isExpired = user?.isExpired ?? false;
     final expiresStr = expiresAt != null
-        ? '${expiresAt.year}-${expiresAt.month.toString().padLeft(2, '0')}-${expiresAt.day.toString().padLeft(2, '0')}'
+        ? (isExpired
+            ? (S.isEn ? 'Expired' : '已过期')
+            : '${expiresAt.year}-${expiresAt.month.toString().padLeft(2, '0')}-${expiresAt.day.toString().padLeft(2, '0')}')
         : (hasPlan ? (S.isEn ? 'Lifetime' : '长期有效') : (S.isEn ? 'N/A' : '无'));
 
     // 用户标签: 周期会员•id:xxx（如后端未适配则显示套餐名称）
@@ -244,9 +247,12 @@ class _DesktopProfilePageState extends ConsumerState<DesktopProfilePage> {
                         const SizedBox(width: 4),
                         Text(planName, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
                         const SizedBox(width: 16),
-                        Icon(Icons.access_time, size: 13, color: Colors.white.withValues(alpha: 0.7)),
+                        Icon(Icons.access_time, size: 13, color: isExpired ? const Color(0xFFFF6B6B) : Colors.white.withValues(alpha: 0.7)),
                         const SizedBox(width: 4),
-                        Text('$expiresStr ${S.isEn ? "expires" : "\u5230\u671f"}', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+                        Text(
+                          isExpired ? expiresStr : '$expiresStr ${S.isEn ? "expires" : "\u5230\u671f"}',
+                          style: TextStyle(fontSize: 12, color: isExpired ? const Color(0xFFFF6B6B) : Colors.white.withValues(alpha: 0.8), fontWeight: isExpired ? FontWeight.w600 : null),
+                        ),
                         const Spacer(),
                         Tooltip(
                           message: S.isEn ? 'Online devices' : '在线设备数',
@@ -2196,194 +2202,181 @@ class _VersionCheckDialogContentState extends ConsumerState<_VersionCheckDialogC
   Widget build(BuildContext context) {
     return Container(
       width: 420,
-      constraints: const BoxConstraints(maxHeight: 460),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: t.cardBg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: t.cardBorder,
         boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.15), blurRadius: 30)],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 标题栏
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 18, 18, 0),
-            child: Row(
+      child: _checking
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(color: const Color(0xFF4CAF50).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.system_update, color: Color(0xFF4CAF50), size: 20),
-                ),
-                const SizedBox(width: 10),
-                Expanded(child: Text(S.isEn ? 'Version Check' : '版本检测', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.textPrimary))),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), shape: BoxShape.circle),
-                      child: Icon(Icons.close, color: t.textHint, size: 18),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 30),
+                CircularProgressIndicator(color: t.primary),
+                const SizedBox(height: 16),
+                Text(S.isEn ? 'Checking for updates...' : '正在检测更新...', style: TextStyle(fontSize: 14, color: t.textSecondary)),
+                const SizedBox(height: 30),
               ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // 内容
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22),
-            child: _checking
-                ? Column(
-                    children: [
-                      const SizedBox(height: 30),
-                      CircularProgressIndicator(color: t.primary),
-                      const SizedBox(height: 16),
-                      Text(S.isEn ? 'Checking for updates...' : '正在检测更新...', style: TextStyle(fontSize: 14, color: t.textSecondary)),
-                      const SizedBox(height: 30),
-                    ],
-                  )
-                : _error != null
-                    ? Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          Icon(Icons.error_outline, color: t.danger, size: 40),
-                          const SizedBox(height: 12),
-                          Text(S.isEn ? 'Check failed' : '检测失败', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: t.textPrimary)),
-                          const SizedBox(height: 8),
-                          Text(_error!, style: TextStyle(fontSize: 12, color: t.textSecondary), textAlign: TextAlign.center),
-                          const SizedBox(height: 16),
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              onTap: _checkVersion,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                                decoration: BoxDecoration(gradient: t.buttonGradient, borderRadius: BorderRadius.circular(10)),
-                                child: Text(S.isEn ? 'Retry' : '重试', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            )
+          : _error != null
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, color: t.danger, size: 48),
+                    const SizedBox(height: 12),
+                    Text(S.isEn ? 'Check failed' : '检测失败', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: t.textPrimary)),
+                    const SizedBox(height: 8),
+                    Text(_error!, style: TextStyle(fontSize: 12, color: t.textSecondary), textAlign: TextAlign.center),
+                    const SizedBox(height: 18),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: _checkVersion,
+                        child: Container(
+                          width: double.infinity, height: 48,
+                          decoration: BoxDecoration(gradient: t.buttonGradient, borderRadius: BorderRadius.circular(14)),
+                          child: Center(child: Text(S.isEn ? 'Retry' : '重试', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: double.infinity, height: 42,
+                          decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                          child: Center(child: Text(S.isEn ? 'Close' : '关闭', style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600))),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : _hasUpdate
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 56, height: 56,
+                          decoration: BoxDecoration(gradient: t.primaryGradient, borderRadius: BorderRadius.circular(16)),
+                          child: const Icon(Icons.system_update, color: Colors.white, size: 28),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(S.newVersion, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: t.textPrimary)),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                              child: Text('v$_currentVersion', style: TextStyle(fontSize: 12, color: t.textHint)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Icon(Icons.arrow_forward, size: 14, color: t.textHint),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(color: t.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                              child: Text('v$_latestVersion', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.primary)),
+                            ),
+                          ],
+                        ),
+                        if (_releaseNotes.isNotEmpty) ...[
+                          const SizedBox(height: 18),
+                          Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(maxHeight: 160),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Scrollbar(
+                              thumbVisibility: true,
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(S.changelog, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.textSecondary)),
+                                    const SizedBox(height: 10),
+                                    Text(_releaseNotes, style: TextStyle(fontSize: 13, color: t.textPrimary, height: 1.4)),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
                         ],
-                      )
-                    : _hasUpdate
-                        ? Column(
-                            children: [
-                              Container(
-                                width: 56, height: 56,
-                                decoration: BoxDecoration(gradient: t.primaryGradient, borderRadius: BorderRadius.circular(16)),
-                                child: const Icon(Icons.system_update, color: Colors.white, size: 28),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(S.newVersion, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: t.textPrimary)),
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-                                    child: Text('v$_currentVersion', style: TextStyle(fontSize: 12, color: t.textHint)),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                                    child: Icon(Icons.arrow_forward, size: 14, color: t.textHint),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: t.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-                                    child: Text('v$_latestVersion', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.primary)),
-                                  ),
-                                ],
-                              ),
-                              if (_releaseNotes.isNotEmpty) ...[
-                                const SizedBox(height: 18),
-                                Container(
-                                  width: double.infinity,
-                                  constraints: const BoxConstraints(maxHeight: 160),
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Scrollbar(
-                                    thumbVisibility: true,
-                                    child: SingleChildScrollView(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(S.changelog, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.textSecondary)),
-                                        const SizedBox(height: 10),
-                                        Text(_releaseNotes, style: TextStyle(fontSize: 13, color: t.textPrimary, height: 1.4)),
-                                      ],
-                                    ),
-                                    ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () => Navigator.of(context).pop(),
+                                  child: Container(
+                                    height: 44,
+                                    decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                                    child: Center(child: Text(S.updateLater, style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600))),
                                   ),
                                 ),
-                              ],
-                              const SizedBox(height: 18),
-                              // 按钮行
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: () => Navigator.of(context).pop(),
-                                        child: Container(
-                                          height: 44,
-                                          decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
-                                          child: Center(child: Text(S.updateLater, style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600))),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          HapticFeedback.mediumImpact();
-                                          if (_updateUrl.isNotEmpty) launchUrl(Uri.parse(_updateUrl));
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: Container(
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            gradient: t.buttonGradient, borderRadius: BorderRadius.circular(14),
-                                            boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 4))],
-                                          ),
-                                          child: Center(child: Text(S.updateNow, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
                               ),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              const SizedBox(height: 20),
-                              Icon(Icons.check_circle, color: t.success, size: 48),
-                              const SizedBox(height: 12),
-                              Text(S.isEn ? 'Up to Date!' : '已是最新版本！', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: t.textPrimary)),
-                              const SizedBox(height: 8),
-                              Text(
-                                S.isEn ? 'Current version: $_currentVersion' : '当前版本: $_currentVersion',
-                                style: TextStyle(fontSize: 13, color: t.textSecondary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    if (_updateUrl.isNotEmpty) launchUrl(Uri.parse(_updateUrl));
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Container(
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      gradient: t.buttonGradient, borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 4))],
+                                    ),
+                                    child: Center(child: Text(S.updateNow, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))),
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 24),
-                            ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, color: t.success, size: 56),
+                        const SizedBox(height: 16),
+                        Text(S.isEn ? 'Up to Date!' : '已是最新版本！', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: t.textPrimary)),
+                        const SizedBox(height: 8),
+                        Text(
+                          S.isEn ? 'Current version: $_currentVersion' : '当前版本: $_currentVersion',
+                          style: TextStyle(fontSize: 14, color: t.textSecondary),
+                        ),
+                        const SizedBox(height: 18),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              width: double.infinity, height: 42,
+                              decoration: BoxDecoration(color: t.textHint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                              child: Center(child: Text(S.isEn ? 'Close' : '关闭', style: TextStyle(color: t.textSecondary, fontSize: 14, fontWeight: FontWeight.w600))),
+                            ),
                           ),
-          ),
-        ],
-      ),
+                        ),
+                      ],
+                    ),
     );
   }
 }
@@ -2402,9 +2395,13 @@ class _GiftCardDialogContentState extends State<_GiftCardDialogContent> {
   final _ctrl = TextEditingController();
   bool _loading = false;
   bool _redeemed = false;
+  bool _checked = false;
   String? _error;
   Map<String, dynamic>? _rewards;
   String? _templateName;
+  String? _templateTypeName;
+  List<String> _previewLines = [];
+  bool _canRedeem = false;
 
   @override
   void dispose() {
@@ -2412,30 +2409,50 @@ class _GiftCardDialogContentState extends State<_GiftCardDialogContent> {
     super.dispose();
   }
 
-  Future<void> _redeem() async {
+  Future<void> _check() async {
     final code = _ctrl.text.trim();
     if (code.isEmpty) {
       setState(() => _error = S.giftCardEmpty);
       return;
     }
+    setState(() { _loading = true; _error = null; _checked = false; });
+    try {
+      final result = await XBoardSDK.instance.giftCard.checkCode(code);
+      setState(() {
+        _loading = false;
+        _checked = true;
+        _canRedeem = result.canRedeem;
+        _templateName = result.codeInfo.template.name;
+        _templateTypeName = result.codeInfo.template.typeName;
+        _previewLines = parseRewardPreview(result.rewardPreview);
+        if (!result.canRedeem && result.reason != null) {
+          _error = result.reason;
+        }
+      });
+    } catch (e) {
+      final msg = e is NetworkException
+          ? (S.isEn ? 'This gift card is temporarily unavailable' : '该礼品卡暂不可用，请稍后重试')
+          : e is XBoardException ? e.message : (S.isEn ? 'Check failed, please try again' : '查询失败，请稍后重试');
+      setState(() { _loading = false; _error = msg; });
+    }
+  }
+
+  Future<void> _redeem() async {
+    final code = _ctrl.text.trim();
+    if (code.isEmpty) return;
     setState(() { _loading = true; _error = null; });
     try {
-      final http = XBoardSDK.instance.httpService;
-      final resp = await http.postRequest('/api/v1/user/gift-card/redeem', {'code': code});
-      final data = resp['data'];
-      if (resp['status'] == 'error' || resp['data'] == null) {
-        final msg = resp['message'] ?? (S.isEn ? 'Redemption failed' : '兑换失败');
-        setState(() { _loading = false; _error = msg.toString(); });
-        return;
-      }
+      final result = await XBoardSDK.instance.giftCard.redeemCode(code);
       setState(() {
         _loading = false;
         _redeemed = true;
-        _rewards = data['rewards'] as Map<String, dynamic>?;
-        _templateName = data['template_name']?.toString();
+        _rewards = result.rewards;
+        _templateName = result.templateName;
       });
     } catch (e) {
-      final msg = e is XBoardException ? e.message : (S.isEn ? 'Redemption failed, please try again' : '兑换失败，请稍后重试');
+      final msg = e is NetworkException
+          ? (S.isEn ? 'Redemption temporarily unavailable' : '兑换服务暂不可用，请稍后重试')
+          : e is XBoardException ? e.message : (S.isEn ? 'Redemption failed, please try again' : '兑换失败，请稍后重试');
       setState(() { _loading = false; _error = msg; });
     }
   }
@@ -2466,7 +2483,7 @@ class _GiftCardDialogContentState extends State<_GiftCardDialogContent> {
           ),
           child: TextField(
             controller: _ctrl,
-            enabled: !_loading,
+            enabled: !_loading && !_checked,
             autofillHints: const [],
             autocorrect: false,
             enableSuggestions: false,
@@ -2475,39 +2492,134 @@ class _GiftCardDialogContentState extends State<_GiftCardDialogContent> {
               hintText: S.giftCardHint, hintStyle: TextStyle(fontSize: 12, color: t.textHint),
               border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11), isDense: true,
             ),
-            onSubmitted: (_) => _redeem(),
+            onSubmitted: (_) => _checked ? _redeem() : _check(),
           ),
         ),
+        // Preview area
+        if (_checked && _previewLines.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity, padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: t.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.primary.withValues(alpha: 0.15)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.card_giftcard, size: 14, color: t.primary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _templateName ?? '',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_templateTypeName != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: t.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                        child: Text(_templateTypeName!, style: TextStyle(fontSize: 10, color: t.primary)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(S.isEn ? 'Rewards preview:' : '奖励预览:', style: TextStyle(fontSize: 11, color: t.textSecondary)),
+                const SizedBox(height: 4),
+                for (final line in _previewLines)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(
+                      children: [
+                        Icon(Icons.star, size: 12, color: const Color(0xFFFF9800)),
+                        const SizedBox(width: 6),
+                        Text(line, style: TextStyle(fontSize: 12, color: t.textPrimary)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
         if (_error != null) ...[
           const SizedBox(height: 8),
           Text(_error!, style: TextStyle(fontSize: 12, color: t.danger), textAlign: TextAlign.center),
         ],
         const SizedBox(height: 14),
-        MouseRegion(
-          cursor: _loading ? SystemMouseCursors.basic : SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: _loading ? null : _redeem,
-            child: Container(
-              width: double.infinity, height: 40,
-              decoration: BoxDecoration(
-                gradient: _loading ? null : t.buttonGradient,
-                color: _loading ? t.textHint.withValues(alpha: 0.2) : null,
-                borderRadius: BorderRadius.circular(10),
+        // Button row: if checked, show "Change" + "Redeem"; otherwise show "Check"
+        if (_checked) ...[
+          Row(
+            children: [
+              Expanded(
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => setState(() { _checked = false; _canRedeem = false; _previewLines = []; _error = null; }),
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: t.isDark ? const Color(0xFF252850) : const Color(0xFFF0F2F8),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(child: Text(S.isEn ? 'Change' : '换一个', style: TextStyle(color: t.textSecondary, fontSize: 13, fontWeight: FontWeight.w600))),
+                    ),
+                  ),
+                ),
               ),
-              child: Center(
-                child: _loading
-                    ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: t.primary))
-                    : Text(S.redeem, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: MouseRegion(
+                  cursor: (_loading || !_canRedeem) ? SystemMouseCursors.basic : SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: (_loading || !_canRedeem) ? null : _redeem,
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: (_loading || !_canRedeem) ? null : t.buttonGradient,
+                        color: (_loading || !_canRedeem) ? t.textHint.withValues(alpha: 0.2) : null,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: _loading
+                            ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: t.primary))
+                            : Text(S.redeem, style: TextStyle(color: _canRedeem ? Colors.white : t.textHint, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else
+          MouseRegion(
+            cursor: _loading ? SystemMouseCursors.basic : SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: _loading ? null : _check,
+              child: Container(
+                width: double.infinity, height: 40,
+                decoration: BoxDecoration(
+                  gradient: _loading ? null : t.buttonGradient,
+                  color: _loading ? t.textHint.withValues(alpha: 0.2) : null,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: _loading
+                      ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: t.primary))
+                      : Text(S.isEn ? 'Check' : '查询', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
 
   Widget _buildSuccess() {
-    // 构建奖励描述列表
     final rewardLines = <String>[];
     if (_rewards != null) {
       final r = _rewards!;
