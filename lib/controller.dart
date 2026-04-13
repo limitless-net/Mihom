@@ -855,19 +855,31 @@ extension CoreControllerExt on AppController {
 
   Future<void> _connectCore() async {
     _ref.read(coreStatusProvider.notifier).value = CoreStatus.connecting;
-    final result = await Future.wait([
-      coreController.preload(),
-      Future.delayed(Duration(milliseconds: 300)),
-    ]);
-    final String message = result[0];
-    if (message.isNotEmpty) {
-      _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
-      if (_context.mounted) {
-        _context.showNotifier(message);
+    const maxAttempts = 3;
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        // bind() is already pending in background (CAS no-op on retry).
+        // Just wait briefly then check again if service connected.
+        await Future.delayed(const Duration(seconds: 2));
       }
-      return;
+      final result = await Future.wait([
+        coreController.preload(),
+        Future.delayed(Duration(milliseconds: 300)),
+      ]);
+      final String message = result[0];
+      if (message.isEmpty) {
+        _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
+        return;
+      }
+      if (attempt < maxAttempts - 1) {
+        commonPrint.log(
+          'Core connect attempt ${attempt + 1}/$maxAttempts: $message',
+          logLevel: LogLevel.info,
+        );
+      }
     }
-    _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
+    // All attempts failed
+    _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
   }
 
   Future<Result<bool>> _requestAdmin(bool enableTun) async {
