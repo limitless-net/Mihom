@@ -28,6 +28,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.charset.Charset
 import kotlin.reflect.KClass
@@ -149,11 +150,16 @@ fun Context.receiveBroadcastFlow(
 inline fun <reified T : IBinder> Context.bindServiceFlow(
     intent: Intent,
     flags: Int = Context.BIND_AUTO_CREATE,
-    maxRetries: Int = 10,
-    retryDelayMillis: Long = 200L
+    maxRetries: Int = 40,
+    retryDelayMillis: Long = 200L,
+    connectionTimeoutMillis: Long = 6000L
 ): Flow<Pair<IBinder?, String>> = callbackFlow {
+    GlobalState.log("bindServiceFlow: creating ServiceConnection for ${intent.component}")
+    var isConnected = false
     val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            isConnected = true
+            GlobalState.log("bindServiceFlow: onServiceConnected name=$name binder=${binder != null}")
             if (binder != null) {
                 try {
                     @Suppress("UNCHECKED_CAST") val casted = binder as? T
@@ -171,25 +177,40 @@ inline fun <reified T : IBinder> Context.bindServiceFlow(
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            GlobalState.log("bindServiceFlow: onServiceDisconnected name=$name")
             trySend(Pair(null, "Service disconnected"))
         }
     }
 
+    GlobalState.log("bindServiceFlow: calling bindService on main thread")
     val success = withContext(Dispatchers.Main) {
         bindService(intent, connection, flags)
     }
+    GlobalState.log("bindServiceFlow: bindService returned $success")
 
     if (!success) {
         throw IllegalStateException("bindService() failed, will retry")
     }
 
+    // Watchdog: if onServiceConnected never fires within connectionTimeoutMillis,
+    // force a retry so the dead/restarting :remote process gets a fresh chance.
+    val watchdog = launch {
+        delay(connectionTimeoutMillis)
+        if (!isConnected) {
+            GlobalState.log("bindServiceFlow: WATCHDOG FIRED - onServiceConnected not received after ${connectionTimeoutMillis}ms, forcing retry")
+            close(Exception("bindService() succeeded but onServiceConnected timed out after ${connectionTimeoutMillis}ms"))
+        }
+    }
+
     awaitClose {
+        GlobalState.log("bindServiceFlow: awaitClose, unbinding")
+        watchdog.cancel()
         Handler(Looper.getMainLooper()).post {
             unbindService(connection)
-            trySend(Pair(null, ""))
         }
     }
 }.retryWhen { cause, attempt ->
+    GlobalState.log("bindServiceFlow: retry attempt=$attempt cause=${cause.message}")
     if (attempt < maxRetries && cause is Exception) {
         delay(retryDelayMillis)
         true

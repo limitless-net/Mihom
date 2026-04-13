@@ -4,8 +4,11 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 全屏背景色 -->
     <item android:drawable="@color/splash_background" />
-    <!-- 应用图标（居中，使用预渲染的圆角 webp） -->
-    <item android:gravity="center">
+    <!-- 应用图标（居中，使用预渲染的圆角 webp，限制尺寸避免大屏显示过大） -->
+    <item
+        android:gravity="center"
+        android:width="100dp"
+        android:height="100dp">
         <bitmap
             android:gravity="center"
             android:src="@drawable/splash_icon" />

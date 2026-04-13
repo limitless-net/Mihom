@@ -1481,7 +1481,8 @@ class _DemoHomePageState extends ConsumerState<DemoHomePage> with TickerProvider
         final spaceAbove = pillPos.dy - MediaQuery.of(context).padding.top - 10;
         final maxListH = spaceAbove.clamp(120.0, 350.0) - toolbarH;
         final listH = listContentH.clamp(48.0, maxListH);
-        final dropW = pillSize.width.clamp(240.0, screenW - 40);
+        // pillSize.width 包含 Container 两侧各 40dp 的 margin，需减去才是药丸视觉宽度
+        final dropW = (pillSize.width - 80).clamp(240.0, screenW - 80);
 
         return Stack(
           children: [

@@ -858,27 +858,41 @@ extension CoreControllerExt on AppController {
     const maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       if (attempt > 0) {
-        // bind() is already pending in background (CAS no-op on retry).
-        // Just wait briefly then check again if service connected.
-        await Future.delayed(const Duration(seconds: 2));
+        commonPrint.log(
+          '[_connectCore] Attempt ${attempt + 1}: shutting down before retry',
+          logLevel: LogLevel.info,
+        );
+        // Force shutdown and rebind on retry to reset ServiceDelegate state
+        await coreController.shutdown(false);
+        await Future.delayed(const Duration(milliseconds: 500));
       }
+      commonPrint.log(
+        '[_connectCore] Attempt ${attempt + 1}/$maxAttempts: calling preload()',
+        logLevel: LogLevel.info,
+      );
       final result = await Future.wait([
         coreController.preload(),
         Future.delayed(Duration(milliseconds: 300)),
       ]);
       final String message = result[0];
       if (message.isEmpty) {
+        commonPrint.log(
+          '[_connectCore] Attempt ${attempt + 1}: SUCCESS',
+          logLevel: LogLevel.info,
+        );
         _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
         return;
       }
-      if (attempt < maxAttempts - 1) {
-        commonPrint.log(
-          'Core connect attempt ${attempt + 1}/$maxAttempts: $message',
-          logLevel: LogLevel.info,
-        );
-      }
+      commonPrint.log(
+        '[_connectCore] Attempt ${attempt + 1}/$maxAttempts FAILED: $message',
+        logLevel: LogLevel.warning,
+      );
     }
     // All attempts failed
+    commonPrint.log(
+      '[_connectCore] All $maxAttempts attempts failed, core disconnected',
+      logLevel: LogLevel.error,
+    );
     _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
   }
 

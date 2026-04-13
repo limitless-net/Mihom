@@ -106,7 +106,12 @@ class _MihomShellState extends ConsumerState<MihomShell> {
     // 清除保存的登录凭证
     SavedCredentials.email = '';
     SavedCredentials.password = '';
-    // 不再清除主题设置，退出登录后下次启动基于认证状态决定引导
+    // 退出登录时清除主题设置，使下次启动重新显示引导页和主题选择页
+    if (_isDesktop) {
+      ref.read(desktopThemeProvider.notifier).clearForLogout();
+    } else {
+      ref.read(mobileThemeProvider.notifier).clearForLogout();
+    }
     // 调用 SDK 退出登录
     ref.read(xboardUserProvider.notifier).logout();
   }
@@ -136,21 +141,20 @@ class _MihomShellState extends ConsumerState<MihomShell> {
 
     // ── 阶段 4: 认证状态 ──
     final userState = ref.watch(xboardUserProvider);
-    // 等待认证状态初始化完成后再决定是否展示引导
     if (!userState.isInitialized) {
       return _buildLoadingPlaceholder(context, '正在验证...');
     }
     final isAuthenticated = userState.isAuthenticated;
 
-    // 未登录时每次启动都展示引导页和主题选择页
+    // 首次启动引导：未登录 且 未完成过引导流程 才显示
+    // 已登录则直接进主界面；退出登录后下次启动会重新检测（clearForLogout已清除主题Key）
     if (!_checkedFirstLaunch) {
       _checkedFirstLaunch = true;
-      if (!isAuthenticated) {
+      if (themeState.isFirstLaunch && !isAuthenticated) {
         _showOnboarding = true;
       }
     }
 
-    // ── 引导流程 ──
     if (_showOnboarding) {
       return _isDesktop
           ? DesktopOnboarding(onComplete: _onOnboardingComplete)

@@ -116,13 +116,17 @@ class ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
 
 
     fun handleInit(result: MethodChannel.Result) {
-        Service.bind()
+        com.follow.clash.common.GlobalState.log("ServicePlugin.handleInit: calling forceBind")
+        Service.forceBind()
         launch {
+            com.follow.clash.common.GlobalState.log("ServicePlugin.handleInit: calling setEventListener")
             Service.setEventListener {
                 handleSendEvent(it)
             }.onSuccess {
+                com.follow.clash.common.GlobalState.log("ServicePlugin.handleInit: setEventListener SUCCESS")
                 result.success("")
             }.onFailure {
+                com.follow.clash.common.GlobalState.log("ServicePlugin.handleInit: setEventListener FAILED: ${it.message}")
                 result.success(it.message)
             }
 

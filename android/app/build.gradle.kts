@@ -105,9 +105,17 @@ dependencies {
     }
 }
 
-// Debug 构建时禁用 Google Services（google-services.json 中没有 .dev 后缀的 package_name）
+// 禁用带 .dev 后缀构建的 Google Services 及 Crashlytics（google-services.json 中没有 .dev 后缀的 package_name）
 afterEvaluate {
     tasks.matching { it.name == "processDebugGoogleServices" }.configureEach {
         enabled = false
+    }
+    if (!isRelease) {
+        tasks.matching { it.name == "processReleaseGoogleServices" }.configureEach {
+            enabled = false
+        }
+        tasks.matching { it.name.startsWith("uploadCrashlyticsMappingFile") }.configureEach {
+            enabled = false
+        }
     }
 }

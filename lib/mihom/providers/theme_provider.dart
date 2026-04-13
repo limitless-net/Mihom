@@ -98,6 +98,8 @@ class DesktopThemeNotifier extends StateNotifier<MihomThemeState> {
   }
 
   void completeFirstLaunch() {
+    // 写入当前主题到SP，确保下次启动不再重复显示引导流程
+    _prefs?.setString('mihom_desktop_theme', state.baseTheme.name);
     state = state.copyWith(isFirstLaunch: false);
   }
 
@@ -159,6 +161,8 @@ class MobileThemeNotifier extends StateNotifier<MihomThemeState> {
   }
 
   void completeFirstLaunch() {
+    // 写入当前主题到SP，确保下次启动不再重复显示引导流程
+    _prefs?.setString('mihom_theme', state.baseTheme.name);
     state = state.copyWith(isFirstLaunch: false);
   }
 

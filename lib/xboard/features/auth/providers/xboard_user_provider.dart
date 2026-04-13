@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_clash/xboard/features/auth/auth.dart';
 import 'package:fl_clash/xboard/services/services.dart';
 import 'package:fl_clash/xboard/features/profile/providers/profile_import_provider.dart';
@@ -24,6 +25,62 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
     _storageService = ref.read(storageServiceProvider);
     return const UserAuthState();
   }
+
+  /// 快速本地认证：直接从 SharedPreferences 读取 token，不依赖 SDK 初始化
+  /// 在 SDK/域名检查完成之前就能让已登录用户跳过 "正在验证..." 进入主界面
+  Future<bool> quickLocalAuth() async {
+    try {
+      _logger.info('快速本地认证：直接检查本地 token...');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('xboard_token');
+      
+      if (token != null && token.isNotEmpty) {
+        String? email;
+        DomainUser? userInfo;
+        DomainSubscription? subscriptionInfo;
+        try {
+          final emailResult = await _storageService.getUserEmail()
+              .timeout(const Duration(seconds: 2));
+          email = emailResult.dataOrNull;
+          
+          final userInfoResult = await _storageService.getDomainUser()
+              .timeout(const Duration(seconds: 2));
+          userInfo = userInfoResult.dataOrNull;
+          
+          final subscriptionInfoResult = await _storageService.getDomainSubscription()
+              .timeout(const Duration(seconds: 2));
+          subscriptionInfo = subscriptionInfoResult.dataOrNull;
+        } catch (e) {
+          _logger.info('获取缓存数据失败，但继续进行认证: $e');
+        }
+        
+        state = state.copyWith(
+          isAuthenticated: true,
+          isInitialized: true,
+          email: email,
+        );
+        
+        if (userInfo != null) {
+          ref.read(userInfoProvider.notifier).state = userInfo;
+        }
+        if (subscriptionInfo != null) {
+          ref.read(subscriptionInfoProvider.notifier).state = subscriptionInfo;
+        }
+        
+        _logger.info('快速本地认证成功：已有 token，直接进入主界面');
+        return true;
+      } else {
+        _logger.info('快速本地认证：无本地 token');
+        state = state.copyWith(isInitialized: true);
+        return false;
+      }
+    } catch (e) {
+      _logger.info('快速本地认证失败: $e');
+      // 失败时不标记 isInitialized，让后续 quickAuth 继续尝试
+      return false;
+    }
+  }
+
   Future<bool> quickAuth() async {
     try {
       _logger.info('快速认证检查：检查登录状态...');

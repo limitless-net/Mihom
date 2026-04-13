@@ -94,6 +94,16 @@ class ApplicationState extends ConsumerState<Application>
   void _performQuickAuthWithDomainService() {
     Future.microtask(() async {
       try {
+        // ── 第一步：快速本地认证，直接读 SharedPreferences，不依赖 SDK ──
+        // 这让已登录用户几乎瞬间跳过"正在验证..."，无需等域名检查 + SDK 初始化
+        final userNotifier = ref.read(xboardUserProvider.notifier);
+        final localAuthSuccess = await userNotifier.quickLocalAuth();
+        if (localAuthSuccess) {
+          debugPrint('[Application] 快速本地认证成功，用户已进入主界面');
+          if (mounted) setState(() {});
+        }
+
+        // ── 第二步：等待 SDK 初始化完成，再做完整的后台 token 验证 ──
         final initState = ref.read(initializationProvider);
         if (!initState.isReady) {
           final deadline = DateTime.now().add(const Duration(seconds: 30));
@@ -104,12 +114,13 @@ class ApplicationState extends ConsumerState<Application>
           }
           if (!ref.read(initializationProvider).isReady) {
             // 初始化失败或超时，仍然标记用户状态为已初始化，让路由跳到登录页（而非永远卡在 /loading）
-            ref.read(xboardUserProvider.notifier).markInitialized();
+            userNotifier.markInitialized();
             return;
           }
         }
 
-        final userNotifier = ref.read(xboardUserProvider.notifier);
+        // 如果本地认证已成功，SDK 就绪后执行完整 quickAuth（触发后台 token 验证）
+        // 如果本地认证失败（无 token），也走完整 quickAuth 流程
         await userNotifier.quickAuth();
 
         if (mounted) setState(() {});

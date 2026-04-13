@@ -28,7 +28,7 @@ object GlobalState : CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
 
     fun log(text: String) {
-        Log.d("[FlClash]", text)
+        Log.d("FlClash", text)
     }
 
     fun init(application: Application) {

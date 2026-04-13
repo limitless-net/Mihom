@@ -38,6 +38,10 @@ object Service {
         delegate.bind()
     }
 
+    fun forceBind() {
+        delegate.forceBind()
+    }
+
     fun unbind() {
         delegate.unbind()
     }
@@ -101,7 +105,7 @@ object Service {
         cb: ((result: String?) -> Unit)?
     ): Result<Unit> {
         val results = HashMap<String, MutableList<ByteArray>>()
-        return delegate.useService {
+        return delegate.useService(timeoutMillis = 20000) {
             it.setEventListener(
                 when (cb != null) {
                     true -> object : IEventInterface.Stub() {

@@ -17,12 +17,19 @@ class CoreLib extends CoreHandlerInterface {
 
   @override
   Future<String> preload() async {
+    commonPrint.log('[CoreLib] preload: calling service?.init()');
     final res = await service?.init();
+    commonPrint.log('[CoreLib] preload: service.init() returned: "$res"');
     if (res?.isEmpty != true) {
+      commonPrint.log('[CoreLib] preload: init FAILED, returning error');
       return res ?? '';
     }
-    _connectedCompleter.complete(true);
+    if (!_connectedCompleter.isCompleted) {
+      _connectedCompleter.complete(true);
+    }
+    commonPrint.log('[CoreLib] preload: calling syncState');
     final syncRes = await service?.syncState(appController.sharedState);
+    commonPrint.log('[CoreLib] preload: syncState returned: "$syncRes"');
     return syncRes ?? '';
   }
 
@@ -38,9 +45,6 @@ class CoreLib extends CoreHandlerInterface {
 
   @override
   Future<bool> shutdown(_) async {
-    if (!_connectedCompleter.isCompleted) {
-      return false;
-    }
     _connectedCompleter = Completer();
     return service?.shutdown() ?? true;
   }

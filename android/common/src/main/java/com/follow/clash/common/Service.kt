@@ -1,11 +1,13 @@
 package com.follow.clash.common
 
+import android.app.ActivityManager
 import android.content.Intent
 import android.os.IBinder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -41,14 +43,56 @@ class ServiceDelegate<T>(
 
     fun bind() {
         if (_bindingState.compareAndSet(false, true)) {
-            job?.cancel()
-            job = null
-            _serviceState.value = null
-            job = launch {
-                runCatching {
-                    GlobalState.application.bindServiceFlow<IBinder>(intent)
-                        .collect { handleBind(it) }
+            startBind()
+        }
+    }
+
+    fun forceBind() {
+        GlobalState.log("ServiceDelegate.forceBind: cancelling old job, resetting state")
+        job?.cancel()
+        job = null
+        _bindingState.set(false)
+        _serviceState.value = null
+        if (_bindingState.compareAndSet(false, true)) {
+            startBind(killExisting = true)
+        } else {
+            GlobalState.log("ServiceDelegate.forceBind: CAS failed unexpectedly!")
+        }
+    }
+
+    private fun startBind(killExisting: Boolean = false) {
+        GlobalState.log("ServiceDelegate.startBind: starting, killExisting=$killExisting")
+        job?.cancel()
+        job = null
+        _serviceState.value = null
+        job = launch {
+            if (killExisting) {
+                try {
+                    val am = GlobalState.application.getSystemService(ActivityManager::class.java)
+                    val targetProcess = "${GlobalState.application.packageName}:remote"
+                    val proc = am?.runningAppProcesses?.find { it.processName == targetProcess }
+                    if (proc != null) {
+                        GlobalState.log("ServiceDelegate.startBind: found lingering :remote process pid=${proc.pid}, killing it")
+                        android.os.Process.killProcess(proc.pid)
+                        delay(800L)
+                        GlobalState.log("ServiceDelegate.startBind: kill delay done, proceeding to bind")
+                    } else {
+                        GlobalState.log("ServiceDelegate.startBind: no lingering :remote process found")
+                    }
+                } catch (e: Exception) {
+                    GlobalState.log("ServiceDelegate.startBind: error during kill: ${e.message}")
                 }
+            }
+            runCatching {
+                GlobalState.application.bindServiceFlow<IBinder>(intent)
+                    .collect {
+                        GlobalState.log("ServiceDelegate: bindServiceFlow emitted: binder=${it.first != null}, msg='${it.second}'")
+                        handleBind(it)
+                    }
+            }.onFailure {
+                GlobalState.log("ServiceDelegate bind failed after all retries: ${it.message}")
+                _serviceState.value = Pair(null, it.message ?: "Bind failed after all retries")
+                _bindingState.set(false)
             }
         }
     }
