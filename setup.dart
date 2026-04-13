@@ -524,7 +524,7 @@ class BuildCommand extends Command {
 
     // ── STEP 3: Helper Service (仅 Windows) ──
     String? coreSha256;
-    if (Platform.isWindows) {
+    if (target == Target.windows) {
       Build._logHeader('编译 Helper Service');
       coreSha256 = await Build.calcSha256(corePaths.first);
       Build._logInfo('Core SHA256: $coreSha256');
