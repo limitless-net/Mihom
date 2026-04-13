@@ -858,7 +858,7 @@ extension CoreControllerExt on AppController {
     const maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       if (attempt > 0) {
-        await Future.delayed(Duration(seconds: attempt));
+        await Future.delayed(Duration(seconds: attempt * 2));
       }
       try {
         final result = await Future.wait([
@@ -873,9 +873,6 @@ extension CoreControllerExt on AppController {
         if (attempt == maxAttempts - 1) {
           _ref.read(coreStatusProvider.notifier).value =
               CoreStatus.disconnected;
-          if (_context.mounted) {
-            _context.showNotifier(message);
-          }
           return;
         }
         commonPrint.log(

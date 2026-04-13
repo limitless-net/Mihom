@@ -2,10 +2,12 @@ package com.follow.clash.common
 
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -45,20 +47,29 @@ class ServiceDelegate<T>(
             job = null
             _serviceState.value = null
             job = launch {
-                runCatching {
-                    GlobalState.application.bindServiceFlow<IBinder>(intent)
-                        .collect { handleBind(it) }
-                }.onFailure { e ->
-                    android.util.Log.e("ServiceDelegate", "bind failed: ${e.stackTraceToString()}")
-                    _serviceState.value = Pair(null, "bind failed: ${e.message}")
-                    _bindingState.set(false)
+                var lastError: Throwable? = null
+                for (attempt in 0 until 5) {
+                    if (attempt > 0) {
+                        delay(1000L * attempt)
+                        Log.w("ServiceDelegate", "Bind retry ${attempt + 1}/5...")
+                    }
+                    val result = runCatching {
+                        GlobalState.application.bindServiceFlow<IBinder>(intent)
+                            .collect { handleBind(it) }
+                    }
+                    // collect blocks forever on success, so if we reach here it failed
+                    lastError = result.exceptionOrNull()
+                    Log.w("ServiceDelegate", "Bind attempt ${attempt + 1}/5 failed: ${lastError?.message}")
                 }
+                // All attempts exhausted
+                Log.e("ServiceDelegate", "All bind attempts failed: ${lastError?.message}")
+                _bindingState.set(false)
             }
         }
     }
 
     suspend inline fun <R> useService(
-        timeoutMillis: Long = 5000, crossinline block: suspend (T) -> R
+        timeoutMillis: Long = 15000, crossinline block: suspend (T) -> R
     ): Result<R> {
         return runCatching {
             withTimeout(timeoutMillis) {
