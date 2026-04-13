@@ -1099,21 +1099,15 @@ class _PurchaseDialogState extends ConsumerState<_PurchaseDialog> with SingleTic
       final cycle = _cycles[_selectedCycle];
       final coupon = _couponVerified ? _couponCtrl.text.trim() : null;
 
+      // 先清理所有未付款的旧订单
+      await _cancelPendingOrders(sdk);
+
       String? tradeNo;
-      try {
-        tradeNo = await sdk.order.createOrder(
-          widget.plan.planId!,
-          cycle.period,
-          couponCode: coupon,
-        );
-      } on XBoardException catch (e) {
-        // 检测"有未付款订单"错误 → 自动清理后重试
-        if (e.message.contains('未付款') || e.message.contains('unpaid') || e.message.contains('pending')) {
-          tradeNo = await _cancelPendingAndRetry(sdk, cycle.period, coupon);
-        } else {
-          rethrow;
-        }
-      }
+      tradeNo = await sdk.order.createOrder(
+        widget.plan.planId!,
+        cycle.period,
+        couponCode: coupon,
+      );
 
       if (tradeNo == null || !mounted) {
         setState(() { _isCreatingOrder = false; });
@@ -1148,42 +1142,30 @@ class _PurchaseDialogState extends ConsumerState<_PurchaseDialog> with SingleTic
     }
   }
 
-  /// 自动取消未付款订单后重新创建
-  Future<String?> _cancelPendingAndRetry(dynamic sdk, String period, String? coupon) async {
-    if (!mounted) return null;
+  /// 自动取消未付款订单
+  Future<void> _cancelPendingOrders(dynamic sdk) async {
+    if (!mounted) return;
     setState(() => _orderProgress = S.isEn ? 'Checking pending orders...' : '正在检查未付款订单...');
 
     final orders = await sdk.order.getOrders(page: 1, pageSize: 50);
     final pending = (orders as List).where((o) => o.status == 0).toList();
 
-    if (pending.isEmpty) {
-      // 可能是 status=1（开通中），无法取消
-      throw ApiException(S.isEn
-          ? 'You have a processing order, please wait or contact support'
-          : '您有开通中的订单，请等待处理或联系客服');
-    }
+    if (pending.isEmpty) return;
 
     for (int i = 0; i < pending.length; i++) {
-      if (!mounted) return null;
+      if (!mounted) return;
       setState(() => _orderProgress = S.isEn
           ? 'Canceling old order (${i + 1}/${pending.length})...'
           : '正在取消旧订单 (${i + 1}/${pending.length})...');
-      await sdk.order.cancelOrder(pending[i].tradeNo);
+      try {
+        await sdk.order.cancelOrder(pending[i].tradeNo);
+      } catch (_) {
+        // 忽略单个取消失败，继续处理其他订单
+      }
     }
 
-    // 取消订单后余额会退回，重新获取余额
-    if (!mounted) return null;
-    setState(() => _orderProgress = S.isEn ? 'Refreshing balance...' : '正在刷新余额...');
-    await _fetchBalance();
-
-    if (!mounted) return null;
-    setState(() => _orderProgress = S.isEn ? 'Creating new order...' : '正在重新创建订单...');
-
-    return await sdk.order.createOrder(
-      widget.plan.planId!,
-      period,
-      couponCode: coupon,
-    );
+    if (!mounted) return;
+    setState(() => _orderProgress = S.isEn ? 'Creating new order...' : '正在创建订单...');
   }
 
   /// 计算优惠券折扣金额

@@ -855,23 +855,48 @@ extension CoreControllerExt on AppController {
 
   Future<void> _connectCore() async {
     _ref.read(coreStatusProvider.notifier).value = CoreStatus.connecting;
-    try {
-      final result = await Future.wait([
-        coreController.preload(),
-        Future.delayed(Duration(milliseconds: 300)),
-      ]);
-      final String message = result[0];
-      if (message.isNotEmpty) {
-        _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
-        if (_context.mounted) {
-          _context.showNotifier(message);
-        }
-        return;
+    const maxAttempts = 3;
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        await Future.delayed(Duration(seconds: attempt));
       }
-      _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
-    } catch (e) {
-      commonPrint.log('Core connect failed: $e', logLevel: LogLevel.warning);
-      _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
+      try {
+        final result = await Future.wait([
+          coreController.preload(),
+          Future.delayed(Duration(milliseconds: 300)),
+        ]);
+        final String message = result[0];
+        if (message.isEmpty) {
+          _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
+          return;
+        }
+        if (attempt == maxAttempts - 1) {
+          _ref.read(coreStatusProvider.notifier).value =
+              CoreStatus.disconnected;
+          if (_context.mounted) {
+            _context.showNotifier(message);
+          }
+          return;
+        }
+        commonPrint.log(
+          'Core connect attempt ${attempt + 1} failed: $message, retrying...',
+          logLevel: LogLevel.info,
+        );
+      } catch (e) {
+        if (attempt == maxAttempts - 1) {
+          commonPrint.log(
+            'Core connect failed after $maxAttempts attempts: $e',
+            logLevel: LogLevel.warning,
+          );
+          _ref.read(coreStatusProvider.notifier).value =
+              CoreStatus.disconnected;
+          return;
+        }
+        commonPrint.log(
+          'Core connect attempt ${attempt + 1} exception: $e, retrying...',
+          logLevel: LogLevel.info,
+        );
+      }
     }
   }
 

@@ -38,8 +38,9 @@ class ThemeManager extends ConsumerWidget {
                     statusBarColor: Colors.transparent,
                     statusBarIconBrightness: iconBrightness,
                     systemNavigationBarIconBrightness: iconBrightness,
-                    systemNavigationBarColor: context.colorScheme.surface,
+                    systemNavigationBarColor: Colors.transparent,
                     systemNavigationBarDividerColor: Colors.transparent,
+                    systemNavigationBarContrastEnforced: false,
                   ),
                 );
           });
@@ -48,8 +49,9 @@ class ThemeManager extends ConsumerWidget {
               statusBarColor: Colors.transparent,
               statusBarIconBrightness: iconBrightness,
               systemNavigationBarIconBrightness: iconBrightness,
-              systemNavigationBarColor: context.colorScheme.surface,
+              systemNavigationBarColor: Colors.transparent,
               systemNavigationBarDividerColor: Colors.transparent,
+              systemNavigationBarContrastEnforced: false,
             ),
             sized: false,
             child: child,

@@ -417,8 +417,9 @@ class MobileScaffoldState extends ConsumerState<MobileScaffold> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        systemNavigationBarColor: t.scaffoldBg,
+        systemNavigationBarColor: Colors.transparent,
         systemNavigationBarIconBrightness: t.isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
       backgroundColor: t.scaffoldBg,

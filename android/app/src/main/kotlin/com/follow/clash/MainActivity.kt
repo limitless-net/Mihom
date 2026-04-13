@@ -31,7 +31,6 @@ class MainActivity : FlutterActivity(),
         GlobalState.launch {
             Service.setEventListener(null)
         }
-        Service.unbind()
         State.flutterEngine = null
         super.onDestroy()
     }
