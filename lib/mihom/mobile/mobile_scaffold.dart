@@ -43,6 +43,90 @@ class MobileScaffoldState extends ConsumerState<MobileScaffold> {
   MihomTheme get t => widget.theme;
   bool get _isGuest => !widget.isAuthenticated;
 
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(xboardUserProvider, (previous, next) {
+      if (next.errorMessage == 'TOKEN_EXPIRED' && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showTokenExpiredDialog();
+        });
+      }
+    });
+  }
+
+  void _showTokenExpiredDialog() {
+    if (!mounted) return;
+    final userNotifier = ref.read(xboardUserProvider.notifier);
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: '',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 250),
+      transitionBuilder: (ctx, a1, a2, child) => Transform.scale(
+        scale: Curves.easeOutBack.transform(a1.value),
+        child: Opacity(opacity: a1.value, child: child),
+      ),
+      pageBuilder: (ctx, a1, a2) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(ctx).size.width * 0.82,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: t.cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: t.cardBorder,
+              boxShadow: [BoxShadow(color: t.primary.withValues(alpha: 0.15), blurRadius: 30)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.lock_outline, color: Color(0xFFFF6B6B), size: 28),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  S.isEn ? 'Session Expired' : '登录已过期',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: t.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  S.isEn ? 'Your session has expired or your account is no longer available. Please log in again.' : '您的登录已过期或账户不可用，请重新登录。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: t.textSecondary, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () async {
+                    Navigator.of(ctx).pop();
+                    userNotifier.clearTokenExpiredError();
+                    await userNotifier.handleTokenExpired();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(gradient: t.buttonGradient, borderRadius: BorderRadius.circular(12)),
+                    child: Center(child: Text(
+                      S.isEn ? 'Log In Again' : '重新登录',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                    )),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _handleLogin() {
     widget.onLogin();
   }
@@ -331,7 +415,12 @@ class MobileScaffoldState extends ConsumerState<MobileScaffold> {
       DemoProfilePage(theme: t, onOpenSettings: openSettings, isGuest: _isGuest, onLogin: _handleLogin, onLogout: _handleLogout),
     ];
 
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: t.scaffoldBg,
+        systemNavigationBarIconBrightness: t.isDark ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
       backgroundColor: t.scaffoldBg,
       body: Container(
         decoration: t.scaffoldGradient != null ? BoxDecoration(gradient: t.scaffoldGradient) : null,
@@ -394,6 +483,7 @@ class MobileScaffoldState extends ConsumerState<MobileScaffold> {
           ],
         ),
       ),
+    ),
     );
   }
 

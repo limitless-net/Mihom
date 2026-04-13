@@ -564,24 +564,10 @@ class _UpdateDialogContentState extends ConsumerState<_UpdateDialogContent> {
         ),
         if (_releaseNotes.isNotEmpty) ...[
           const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            constraints: const BoxConstraints(maxHeight: 180),
-            decoration: BoxDecoration(
-              color: t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(S.changelog, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.textSecondary)),
-                  const SizedBox(height: 10),
-                  Text(_releaseNotes, style: TextStyle(fontSize: 13, color: t.textPrimary, height: 1.4)),
-                ],
-              ),
-            ),
+          _ChangelogBox(
+            releaseNotes: _releaseNotes,
+            theme: t,
+            maxHeight: 180,
           ),
         ],
         const SizedBox(height: 18),
@@ -659,4 +645,102 @@ Widget _updateLogItem(MihomTheme t, String text) {
       ],
     ),
   );
+}
+
+/// 带底部渐变提示的更新日志区域，内容超出时提示用户可滚动
+class _ChangelogBox extends StatefulWidget {
+  final String releaseNotes;
+  final MihomTheme theme;
+  final double maxHeight;
+  const _ChangelogBox({required this.releaseNotes, required this.theme, this.maxHeight = 180});
+  @override
+  State<_ChangelogBox> createState() => _ChangelogBoxState();
+}
+
+class _ChangelogBoxState extends State<_ChangelogBox> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showBottomHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkOverflow());
+  }
+
+  void _checkOverflow() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final hasOverflow = _scrollController.position.maxScrollExtent > 0;
+    if (hasOverflow != _showBottomHint) {
+      setState(() => _showBottomHint = hasOverflow);
+    }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final atBottom = _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 8;
+    if (_showBottomHint && atBottom) {
+      setState(() => _showBottomHint = false);
+    } else if (!_showBottomHint && !atBottom && _scrollController.position.maxScrollExtent > 0) {
+      setState(() => _showBottomHint = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.theme;
+    final bgColor = t.isDark ? const Color(0xFF1E2140) : const Color(0xFFF5F7FA);
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(maxHeight: widget.maxHeight),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(S.changelog, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.textSecondary)),
+                    const SizedBox(height: 10),
+                    Text(widget.releaseNotes, style: TextStyle(fontSize: 13, color: t.textPrimary, height: 1.4)),
+                  ],
+                ),
+              ),
+            ),
+            if (_showBottomHint)
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: Container(
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [bgColor.withValues(alpha: 0), bgColor],
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(Icons.keyboard_arrow_down, size: 18, color: t.textHint),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

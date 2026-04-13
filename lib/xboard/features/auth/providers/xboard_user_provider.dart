@@ -243,6 +243,8 @@ class XBoardUserAuthNotifier extends Notifier<UserAuthState> {
       String errorMessage = '登录失败';
       if (e is XBoardException) {
         errorMessage = e.message;
+      } else if (e is ApiException) {
+        errorMessage = e.message;
       }
       state = state.copyWith(
         isLoading: false,

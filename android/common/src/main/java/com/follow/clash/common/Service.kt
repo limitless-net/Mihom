@@ -40,6 +40,9 @@ class ServiceDelegate<T>(
     }
 
     fun bind() {
+        if (_bindingState.get() && (_serviceState.value == null || job?.isActive != true)) {
+            unbind()
+        }
         if (_bindingState.compareAndSet(false, true)) {
             job?.cancel()
             job = null
