@@ -48,6 +48,10 @@ class ServiceDelegate<T>(
                 runCatching {
                     GlobalState.application.bindServiceFlow<IBinder>(intent)
                         .collect { handleBind(it) }
+                }.onFailure { e ->
+                    android.util.Log.e("ServiceDelegate", "bind failed: ${e.stackTraceToString()}")
+                    _serviceState.value = Pair(null, "bind failed: ${e.message}")
+                    _bindingState.set(false)
                 }
             }
         }
