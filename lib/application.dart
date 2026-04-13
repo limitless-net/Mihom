@@ -31,9 +31,12 @@ class Application extends ConsumerStatefulWidget {
   ConsumerState<Application> createState() => ApplicationState();
 }
 
-class ApplicationState extends ConsumerState<Application> {
+class ApplicationState extends ConsumerState<Application>
+    with WidgetsBindingObserver {
   Timer? _autoUpdateProfilesTaskTimer;
   bool _preHasVpn = false;
+  Brightness _systemBrightness =
+      WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
   final _pageTransitionsTheme = const PageTransitionsTheme(
     builders: <TargetPlatform, PageTransitionsBuilder>{
@@ -54,6 +57,8 @@ class ApplicationState extends ConsumerState<Application> {
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
 
     // XBoard: 后台预热初始化服务（不阻塞 UI）
     Future.microtask(() async {
@@ -130,9 +135,8 @@ class ApplicationState extends ConsumerState<Application> {
           if (currentContext != null) {
             if (!system.isDesktop) {
               // 移动端：使用与设置页/我的页面相同的更新弹窗
-              final systemBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
               final mihomThemeState = ref.read(mobileThemeProvider);
-              final t = resolveTheme(mihomThemeState, systemBrightness);
+              final t = resolveTheme(mihomThemeState, _systemBrightness);
               showUpdateDialog(currentContext, t);
             } else {
               // 桌面端：使用 UpdateDialog
@@ -227,9 +231,7 @@ class ApplicationState extends ConsumerState<Application> {
         final mihomThemeState = system.isDesktop
             ? ref.watch(desktopThemeProvider)
             : ref.watch(mobileThemeProvider);
-        final systemBrightness =
-            WidgetsBinding.instance.platformDispatcher.platformBrightness;
-        final mihomTheme = resolveTheme(mihomThemeState, systemBrightness);
+        final mihomTheme = resolveTheme(mihomThemeState, _systemBrightness);
 
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
@@ -289,7 +291,19 @@ class ApplicationState extends ConsumerState<Application> {
   }
 
   @override
+  void didChangePlatformBrightness() {
+    final newBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    if (_systemBrightness != newBrightness) {
+      setState(() {
+        _systemBrightness = newBrightness;
+      });
+    }
+  }
+
+  @override
   Future<void> dispose() async {
+    WidgetsBinding.instance.removeObserver(this);
     linkManager.destroy();
     _autoUpdateProfilesTaskTimer?.cancel();
     await coreController.destroy();
