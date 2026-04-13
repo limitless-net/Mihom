@@ -855,46 +855,19 @@ extension CoreControllerExt on AppController {
 
   Future<void> _connectCore() async {
     _ref.read(coreStatusProvider.notifier).value = CoreStatus.connecting;
-    const maxAttempts = 3;
-    for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      if (attempt > 0) {
-        await Future.delayed(Duration(seconds: attempt * 2));
+    final result = await Future.wait([
+      coreController.preload(),
+      Future.delayed(Duration(milliseconds: 300)),
+    ]);
+    final String message = result[0];
+    if (message.isNotEmpty) {
+      _ref.read(coreStatusProvider.notifier).value = CoreStatus.disconnected;
+      if (_context.mounted) {
+        _context.showNotifier(message);
       }
-      try {
-        final result = await Future.wait([
-          coreController.preload(),
-          Future.delayed(Duration(milliseconds: 300)),
-        ]);
-        final String message = result[0];
-        if (message.isEmpty) {
-          _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
-          return;
-        }
-        if (attempt == maxAttempts - 1) {
-          _ref.read(coreStatusProvider.notifier).value =
-              CoreStatus.disconnected;
-          return;
-        }
-        commonPrint.log(
-          'Core connect attempt ${attempt + 1} failed: $message, retrying...',
-          logLevel: LogLevel.info,
-        );
-      } catch (e) {
-        if (attempt == maxAttempts - 1) {
-          commonPrint.log(
-            'Core connect failed after $maxAttempts attempts: $e',
-            logLevel: LogLevel.warning,
-          );
-          _ref.read(coreStatusProvider.notifier).value =
-              CoreStatus.disconnected;
-          return;
-        }
-        commonPrint.log(
-          'Core connect attempt ${attempt + 1} exception: $e, retrying...',
-          logLevel: LogLevel.info,
-        );
-      }
+      return;
     }
+    _ref.read(coreStatusProvider.notifier).value = CoreStatus.connected;
   }
 
   Future<Result<bool>> _requestAdmin(bool enableTun) async {
