@@ -40,13 +40,13 @@ class ServiceDelegate<T>(
     }
 
     fun bind() {
-        if (_bindingState.get() && (_serviceState.value == null || job?.isActive != true)) {
-            unbind()
-        }
+        // Always force a fresh bind - cancel any stale state from previous runs
+        job?.cancel()
+        job = null
+        _serviceState.value = null
+        _bindingState.set(false)
+
         if (_bindingState.compareAndSet(false, true)) {
-            job?.cancel()
-            job = null
-            _serviceState.value = null
             job = launch {
                 runCatching {
                     GlobalState.application.bindServiceFlow<IBinder>(intent)
@@ -57,7 +57,7 @@ class ServiceDelegate<T>(
     }
 
     suspend inline fun <R> useService(
-        timeoutMillis: Long = 5000, crossinline block: suspend (T) -> R
+        timeoutMillis: Long = 15000, crossinline block: suspend (T) -> R
     ): Result<R> {
         return runCatching {
             withTimeout(timeoutMillis) {
