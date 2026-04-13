@@ -2,7 +2,6 @@ package com.follow.clash.common
 
 import android.content.Intent
 import android.os.IBinder
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -49,9 +48,6 @@ class ServiceDelegate<T>(
                 runCatching {
                     GlobalState.application.bindServiceFlow<IBinder>(intent)
                         .collect { handleBind(it) }
-                }.onFailure { e ->
-                    Log.e("ServiceDelegate", "bind failed: ${e.message}")
-                    _bindingState.set(false)
                 }
             }
         }
