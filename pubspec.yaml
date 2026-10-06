@@ -126,6 +126,7 @@ flutter_intl:
   class_name: AppLocalizations
   arb_dir: arb
   output_dir: lib/l10n
-  
+
 dependency_overrides:
   dio: 5.8.0
+  connectivity_plus: 6.1.5 # 加上这行，把版本死死钉在 6.1.5
