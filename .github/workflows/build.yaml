@@ -350,12 +350,13 @@ jobs:
           sudo apt-get install -y clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libappindicator3-dev patchelf
       # ========================================================
       # ========================================================
-      # 🚀 新增的代码在这里：更新 macOS 的 CocoaPods 仓库
+      # 🚀 修改这里：不仅更新仓库，还要删掉旧的锁定文件
       # ========================================================
       - name: Update CocoaPods for macOS
         if: startsWith(matrix.platform, 'macos')
         run: |
           cd macos
+          rm -f Podfile.lock
           pod repo update
       # ========================================================
       - name: Setup
