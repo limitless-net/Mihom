@@ -342,7 +342,15 @@ jobs:
           # - 应用版本号（version）
           # - 应用图标（icon）
           dart run branding.dart
-
+      # ========== 新增：安装 Linux 编译所需的底层依赖 ==========
+      - name: Install Linux dependencies
+        if: startsWith(matrix.platform, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libappindicator3-dev patchelf
+      # ========================================================
+      - name: Setup
+        run: dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }}
       - name: Setup
         run: dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }}
 
