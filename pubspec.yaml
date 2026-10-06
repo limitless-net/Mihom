@@ -130,3 +130,4 @@ flutter_intl:
 dependency_overrides:
   dio: 5.8.0
   connectivity_plus: 6.1.5 # 加上这行，把版本死死钉在 6.1.5
+  dynamic_color: 1.7.0
