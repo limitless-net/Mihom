@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -24,6 +22,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // 💡 已修改：移至 android 块内使用 kotlinOptions
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     buildTypes {
         release {
             proguardFiles(
@@ -33,13 +36,6 @@ android {
         }
     }
 }
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
-}
-
 
 dependencies {
     implementation(project(":core"))
