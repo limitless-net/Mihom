@@ -117,7 +117,7 @@ class WindowHeaderContainer extends StatelessWidget {
       builder: (_, ref, child) {
         final isMobileView = ref.watch(isMobileViewProvider);
         final version = ref.watch(versionProvider);
-        if ((version <= 10 || !isMobileView) && system.isMacOS) {
+        if (version <= 10 || !isMobileView) {
           return child!;
         }
         return Column(

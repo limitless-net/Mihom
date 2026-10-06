@@ -55,6 +55,17 @@ jobs:
           mkdir -p assets/config
           echo "${{ secrets.XBOARD_CONFIG }}" | base64 --decode > assets/config/xboard.config.yaml
 
+      - name: Apply Branding and Version
+        shell: bash
+        run: |
+          # 使用 dart run 执行 branding.dart 脚本
+          # 该脚本会自动同步以下内容到所有平台：
+          # - 应用名称（appName, appNameEn）
+          # - 应用包名（packageId）
+          # - 应用版本号（version）
+          # - 应用图标（icon）
+          dart run branding.dart
+
       - name: Setup Android Signing
         if: startsWith(matrix.platform,'android')
         run: |

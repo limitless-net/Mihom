@@ -10,6 +10,20 @@ class MainFlutterWindow: NSWindow {
         self.contentViewController = flutterViewController
         self.setFrame(windowFrame, display: true)
         
+        // ── 日志通道，用于记录 Dart 侧的启动状态 ──
+        let logChannel = FlutterMethodChannel(
+            name: "app/logger",
+            binaryMessenger: flutterViewController.engine.binaryMessenger
+        )
+        logChannel.setMethodCallHandler { (_ call: FlutterMethodCall, result: @escaping FlutterResult) in
+            if call.method == "log" {
+                if let message = call.arguments as? String {
+                    print("[Flutter] \(message)")
+                }
+            }
+            result(nil)
+        }
+        
         FlutterMethodChannel(
             name: "launch_at_startup", binaryMessenger: flutterViewController.engine.binaryMessenger
         )

@@ -27,6 +27,10 @@ String _formatBytes(int bytes) {
   return '${value.toStringAsFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unitIndex]}';
 }
 
+String _formatDateTime(DateTime dateTime) {
+  return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+}
+
 class DemoProfilePage extends ConsumerStatefulWidget {
   final MihomTheme theme;
   final VoidCallback? onOpenSettings;
@@ -463,7 +467,12 @@ class _DemoProfilePageState extends ConsumerState<DemoProfilePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(S.expiresDate, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(
+                expiresAt != null 
+                  ? '${S.isEn ? "Expires" : "到期"} ${_formatDateTime(expiresAt)}'
+                  : S.expiresDate,
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
               Text(expiresStr, style: TextStyle(color: isExpired ? const Color(0xFFFF6B6B) : Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: isExpired ? FontWeight.w600 : FontWeight.w500)),
             ],
           ),

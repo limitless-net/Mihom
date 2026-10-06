@@ -17,11 +17,22 @@ import 'common/common.dart';
 RemoteTaskManager? remoteTaskManager;
 
 Future<void> main() async {
+  // ── 全局异常处理（防止未捕获异常导致应用直接退出）── 
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('[FlutterError] ${details.exceptionAsString()}');
+    debugPrintStack(stackTrace: details.stack);
+  };
+  
   try {
     WidgetsFlutterBinding.ensureInitialized();
 
-    // 初始化 XBoard 配置模块和域名服务
-    await _initializeXBoardServices();
+    // 初始化 XBoard 配置模块和域名服务（带降级处理）
+    try {
+      await _initializeXBoardServices();
+    } catch (e, s) {
+      debugPrint('[Main] XBoard服务初始化失败，使用降级模式: $e\n$s');
+      // 继续执行，XBoard 功能会在后续初始化中处理
+    }
 
     // 初始化 RemoteTaskManager（非阻塞）
     try {
@@ -30,8 +41,8 @@ Future<void> main() async {
         remoteTaskManager!.initialize();
         remoteTaskManager!.start();
       }
-    } catch (e) {
-      debugPrint('RemoteTaskManager 初始化异常: $e');
+    } catch (e, s) {
+      debugPrint('[Main] RemoteTaskManager 初始化异常: $e\n$s');
       remoteTaskManager = null;
     }
 
@@ -48,6 +59,7 @@ Future<void> main() async {
       ),
     );
   } catch (e, s) {
+    debugPrint('[Main] 应用启动失败: $e\n$s');
     return runApp(
       MaterialApp(
         home: InitErrorScreen(error: e, stack: s),
@@ -75,9 +87,10 @@ Future<void> _initializeXBoardServices() async {
     final configSettings = await ConfigFileLoader.loadFromFile();
     await _loadSecurityConfig();
     await XBoardConfig.initialize(settings: configSettings);
-  } catch (e) {
-    debugPrint('[Main] XBoard服务初始化失败: $e');
-    rethrow;
+    debugPrint('[Main] XBoard服务初始化成功');
+  } catch (e, s) {
+    debugPrint('[Main] XBoard服务初始化失败: $e\n$s');
+    // 仅打印日志，不抛出异常，让应用继续运行
   }
 }
 
