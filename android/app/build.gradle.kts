@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
@@ -29,11 +28,14 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
     ndkVersion = libs.versions.ndkVersion.get()
 
-
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // 💡 已修复：使用标准的 android 闭包内 kotlinOptions 配置 JVM 目标版本
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -84,16 +86,9 @@ android {
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
-}
-
 flutter {
     source = "../.."
 }
-
 
 dependencies {
     implementation(project(":service"))
