@@ -126,3 +126,8 @@ flutter_intl:
   class_name: AppLocalizations
   arb_dir: arb
   output_dir: lib/l10n
+# =========================================
+# 🚀 在最底下加入这几行，强制锁定 dio 的版本
+# =========================================
+dependency_overrides:
+  dio: 5.8.0
